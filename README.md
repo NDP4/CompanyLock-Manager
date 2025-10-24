@@ -73,7 +73,7 @@ Sistem manajemen password karyawan dengan token akses yang aman, dibangun dengan
 ### 1. Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/NDP4/CompanyLock-Manager.git
 cd CompanyLock-Manager-web
 ```
 
