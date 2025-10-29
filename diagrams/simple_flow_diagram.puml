@@ -1,0 +1,129 @@
+@startuml SimpleFlow_KaryawanLupaPassword
+!theme plain
+
+title Flow Sederhana - Karyawan Lupa Password
+
+participant "👤 Karyawan" as Employee
+participant "👨‍💻 Admin IT" as Admin  
+participant "💻 Sistem CompanyLock" as System
+
+== Langkah 1: Karyawan Meminta Bantuan ==
+
+Employee -> Admin : 📞 "Pak/Bu, saya lupa password.\nBisa minta tolong dibantu?"
+
+Admin -> Employee : ✅ "Oke, saya akan buatkan\ntoken akses untuk Anda"
+
+== Langkah 2: Admin Buat Token ==
+
+Admin -> System : 🔑 **Login ke Admin Panel**\nhttp://IP:3000/admin
+note right of Admin
+  Admin masuk dengan
+  username & password admin
+end note
+
+Admin -> System : 👥 **Pilih nama karyawan**\ndi halaman "Generate Token"
+note right of Admin
+  Admin cari dan pilih
+  nama karyawan yang
+  meminta bantuan
+end note
+
+Admin -> System : ⏰ **Tentukan durasi token**\n(misal: 30 menit)
+note right of Admin
+  Admin pilih berapa lama
+  token berlaku:
+  - 5 menit (cepat)
+  - 30 menit (normal)
+  - 60 menit (lama)
+end note
+
+System -> Admin : 🎫 **Token berhasil dibuat**\nContoh: ABC123XYZ789
+note right of System
+  Sistem generate token unik
+  yang aman dan mencatat
+  siapa yang membuatnya
+end note
+
+== Langkah 3: Admin Berikan Token ==
+
+Admin -> Employee : 💬 **Kirim token secara aman**\n"Token Anda: ABC123XYZ789\nBerlaku 30 menit"
+note right of Admin
+  Kirim via:
+  - WhatsApp pribadi
+  - Email internal
+  - Telepon langsung
+  - Bertemu langsung
+  
+  ❌ JANGAN kirim via grup chat
+end note
+
+== Langkah 4: Karyawan Akses Password ==
+
+Employee -> System : 🌐 **Buka halaman karyawan**\nhttp://IP:3000/
+note right of Employee
+  Karyawan buka browser
+  dan akses halaman
+  khusus karyawan
+end note
+
+Employee -> System : 📝 **Input username & token**\nUsername: john.doe\nToken: ABC123XYZ789
+note right of Employee
+  Karyawan masukkan:
+  1. Username pribadi
+  2. Token dari admin
+  3. Klik "Akses Password"
+end note
+
+alt ✅ **Token Valid & Username Benar**
+    System -> Employee : 🔓 **Password ditampilkan**\n"Password Anda: myPassword123"
+    note right of System
+      Password muncul di layar:
+      - Awalnya tersembunyi (••••••)
+      - Bisa di-show/hide
+      - Ada tombol copy
+      - Otomatis sembunyi 30 detik
+    end note
+    
+    Employee -> Employee : 📋 **Copy & gunakan password**
+    note right of Employee
+      Karyawan:
+      1. Copy password
+      2. Login ke sistem yang diperlukan
+      3. Selesai!
+    end note
+    
+else ❌ **Token Invalid/Username Salah**
+    System -> Employee : 🚫 **Error ditampilkan**\n"Token tidak valid atau\nusername tidak sesuai"
+    
+    Employee -> Admin : 📞 **Hubungi admin lagi**\n"Pak/Bu, token tidak bisa dipakai"
+    
+    Admin -> System : 🔄 **Generate token baru**
+    note right of Admin
+      Admin cek:
+      - Apakah token sudah expired?
+      - Apakah username benar?
+      - Buat token baru jika perlu
+    end note
+end
+
+== Langkah 5: Monitoring & Keamanan ==
+
+System -> System : 📊 **Catat semua aktivitas**
+note right of System
+  Sistem otomatis mencatat:
+  - Siapa yang buat token
+  - Kapan token digunakan
+  - Berhasil/gagal akses
+  - IP address karyawan
+end note
+
+Admin -> System : 👀 **Monitor log aktivitas**\ndi halaman "Audit Logs"
+note right of Admin
+  Admin bisa pantau:
+  - Token yang dibuat hari ini
+  - Karyawan yang akses password  
+  - Aktivitas mencurigakan
+  - Statistik penggunaan
+end note
+
+@enduml

@@ -317,7 +317,7 @@ export default function UsersPage() {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="glass-input"
+              className="glass-select"
             >
               <option value="all">Semua Role</option>
               <option value="Admin">Admin</option>
@@ -327,7 +327,7 @@ export default function UsersPage() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="glass-input"
+              className="glass-select"
             >
               <option value="all">Semua Status</option>
               <option value="active">Aktif</option>

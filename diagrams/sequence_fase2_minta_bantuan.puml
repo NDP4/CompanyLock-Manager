@@ -1,0 +1,207 @@
+@startuml Sequence_Fase2_KaryawanMintaBantuan
+!theme plain
+
+title Fase 2: Karyawan Meminta Bantuan\nCompanyLock Manager System
+
+actor "Karyawan" as Employee
+actor "Admin IT" as Admin
+participant "Admin Panel\n(Dashboard)" as AdminPanel
+participant "Backend API" as Backend
+participant "Database" as DB
+
+== Sub-Fase 2A: Karyawan Menghubungi Admin ==
+
+Employee -> Employee : **1. Karyawan lupa password**
+note right of Employee
+  Situasi yang memicu:
+  - Lupa password login komputer
+  - Password expired/harus diganti
+  - Akun terkunci setelah salah input
+  - Password tidak berfungsi di sistem
+end note
+
+Employee -> Admin : **2. Hubungi admin IT**
+note right of Employee
+  Cara menghubungi admin:
+  - Telepon langsung ke IT helpdesk
+  - Email ke it-support@company.com
+  - Chat WhatsApp/Telegram pribadi admin
+  - Datang langsung ke ruang IT
+  - Melalui sistem ticketing internal
+end note
+
+note over Employee, Admin
+  **Contoh percakapan:**
+  
+  Karyawan: "Pak/Bu, saya John dari Finance. 
+  Saya tidak bisa login ke komputer, sepertinya 
+  lupa password. Bisa tolong dibantu?"
+  
+  Admin: "Baik Pak John, saya akan buatkan 
+  token akses sementara. Mohon tunggu sebentar."
+end note
+
+== Sub-Fase 2B: Admin Verifikasi Identitas ==
+
+Admin -> Employee : **3. Konfirmasi identitas karyawan**
+note right of Admin
+  Admin verifikasi dengan bertanya:
+  - "Nama lengkap sesuai sistem?"
+  - "Departemen mana?"
+  - "Username yang biasa dipakai?"
+  - "Nomor pegawai/ID karyawan?"
+  - "Email perusahaan aktif?"
+end note
+
+Employee -> Admin : **4. Berikan data identitas**
+note right of Employee
+  Karyawan konfirmasi:
+  - Nama: "John Doe"
+  - Departemen: "Finance"
+  - Username: "john.doe"
+  - ID: "EMP-2024-001"
+  - Email: "john.doe@company.com"
+end note
+
+== Sub-Fase 2C: Admin Cek Status Karyawan ==
+
+Admin -> AdminPanel : **5. Login ke admin panel**
+AdminPanel -> Backend : POST /api/auth/login\n{admin_username, admin_password}
+Backend -> DB : Validasi admin credentials
+DB -> Backend : Admin user data + permissions
+Backend -> AdminPanel : JWT token + dashboard access
+
+Admin -> AdminPanel : **6. Cari data karyawan di sistem**
+AdminPanel -> Backend : GET /api/users?search=john.doe
+Backend -> DB : SELECT * FROM users WHERE\n(username LIKE '%john.doe%' OR full_name LIKE '%John Doe%')\nAND is_active = true
+DB -> Backend : Employee data found
+Backend -> AdminPanel : Karyawan details
+
+AdminPanel -> Admin : **7. Tampilkan data karyawan**
+note right of AdminPanel
+  Info yang tampil:
+  - ID: 25
+  - Username: john.doe
+  - Nama: John Doe
+  - Departemen: Finance
+  - Status: Aktif
+  - Terakhir login: 2 hari lalu
+  - Token aktif: Tidak ada
+end note
+
+alt **Karyawan Ditemukan & Aktif**
+    Admin -> Employee : **8a. Konfirmasi akan dibuatkan token**
+    note right of Admin
+      "Baik Pak John, data Anda sudah saya temukan.
+      Saya akan buatkan token akses sementara.
+      Tokennya berlaku 30 menit ya.
+      Mohon tunggu sebentar."
+    end note
+    
+    Employee -> Admin : **8b. Setuju dan menunggu**
+    note right of Employee
+      "Baik Pak/Bu, saya tunggu tokennya.
+      Terima kasih atas bantuannya."
+    end note
+    
+else **Karyawan Tidak Ditemukan**
+    Admin -> Employee : **8c. Informasi data tidak ditemukan**
+    note right of Admin
+      "Maaf Pak John, saya tidak menemukan 
+      data Anda di sistem. Mungkin ada salah eja 
+      username atau Anda belum terdaftar.
+      
+      Coba cek lagi atau saya tambahkan 
+      ke sistem dulu."
+    end note
+    
+    Employee -> Admin : **8d. Klarifikasi data**
+    note right of Employee
+      "Oh mungkin usernamenya john_doe 
+      dengan underscore Pak/Bu, atau 
+      j.doe. Coba dicek lagi."
+    end note
+    
+else **Karyawan Nonaktif**
+    Admin -> Employee : **8e. Informasi akun nonaktif**
+    note right of Admin
+      "Pak John, data Anda ada tapi 
+      statusnya nonaktif. Kemungkinan 
+      sudah resign atau mutasi.
+      
+      Saya perlu konfirmasi ke HRD dulu."
+    end note
+end
+
+== Sub-Fase 2D: Admin Tentukan Tindakan ==
+
+alt **Lanjut Generate Token**
+    Admin -> Admin : **9a. Siap generate token**
+    note right of Admin
+      Admin siap lanjut ke fase 3:
+      - Data karyawan valid
+      - Identitas terverifikasi  
+      - Tidak ada token aktif
+      - Karyawan menunggu
+    end note
+    
+else **Perlu Tindakan Lain**
+    alt **Update Data Karyawan**
+        Admin -> AdminPanel : **9b. Update data karyawan**
+        note right of Admin
+          Jika ada perubahan:
+          - Departemen baru
+          - Nama berubah
+          - Username berubah
+        end note
+        
+    else **Tambah Karyawan Baru**
+        Admin -> AdminPanel : **9c. Tambah karyawan ke sistem**
+        note right of Admin
+          Jika karyawan baru:
+          - Belum ada di database
+          - Perlu registrasi pertama
+          - Koordinasi dengan HRD
+        end note
+        
+    else **Aktivasi Karyawan**
+        Admin -> AdminPanel : **9d. Aktifkan akun karyawan**
+        AdminPanel -> Backend : PUT /api/users/{user_id}/activate
+        Backend -> DB : UPDATE users SET is_active = true WHERE id = ?
+        note right of Admin
+          Jika karyawan return/reactivate:
+          - Status dari nonaktif ke aktif
+          - Reset password baru
+          - Update departemen jika perlu
+        end note
+    end
+end
+
+== Koordinasi & Komunikasi ==
+
+Admin -> Employee : **10. Update status ke karyawan**
+note right of Admin
+  Admin kabari perkembangan:
+  - "Sedang diproses, mohon tunggu"
+  - "Ada kendala, perlu koordinasi HRD"
+  - "Siap dibuatkan token sekarang"
+  - "Estimasi 5-10 menit lagi"
+end note
+
+note over Employee, Admin
+  **Tips Komunikasi yang Baik:**
+  
+  ✅ DO:
+  - Berikan estimasi waktu
+  - Jelaskan langkah yang dilakukan
+  - Minta data yang diperlukan dengan jelas
+  - Konfirmasi sebelum tindakan
+  
+  ❌ DON'T:  
+  - Biarkan karyawan menunggu tanpa info
+  - Gunakan bahasa teknis yang rumit
+  - Langsung tolak tanpa cek sistem
+  - Lupa follow up setelah selesai
+end note
+
+@enduml

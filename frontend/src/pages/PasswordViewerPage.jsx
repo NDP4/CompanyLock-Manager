@@ -251,7 +251,7 @@ export default function PasswordViewerPage() {
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="glass-input w-full"
+                  className="glass-select w-full"
                 >
                   <option value="">Pilih nama Anda dari daftar...</option>
                   {users.map((user) => (

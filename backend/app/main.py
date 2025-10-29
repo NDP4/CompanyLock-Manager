@@ -37,6 +37,7 @@ class GenerateTokenRequest(BaseModel):
 
 class UseTokenRequest(BaseModel):
     token: str
+    username: Optional[str] = None
 
 class TokenResponse(BaseModel):
     token: str
@@ -318,6 +319,30 @@ async def use_token(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User tidak ditemukan"
         )
+    
+    # Validasi username jika diberikan
+    if request.username and request.username.strip():
+        if user.username.lower() != request.username.strip().lower():
+            # Log percobaan akses tidak sah
+            audit_log = AuditLog(
+                action=AuditAction.PASSWORD_VIEWED,
+                admin_id=token_result["admin_id"],
+                target_user_id=token_result["user_id"],
+                details=json.dumps({
+                    "token_id": token_result["token_id"],
+                    "username_provided": request.username,
+                    "actual_username": user.username,
+                    "status": "unauthorized_access_attempt"
+                }),
+                client_host=get_client_host(http_request)
+            )
+            db.add(audit_log)
+            db.commit()
+            
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Username tidak sesuai dengan pemilik token"
+            )
     
     # Dekripsi password
     try:

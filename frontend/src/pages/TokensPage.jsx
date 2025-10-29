@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Calendar,
 } from "lucide-react";
+import { copyToClipboard } from "../lib/clipboard";
 import {
   Card,
   CardContent,
@@ -18,6 +19,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import UserSelector from "@/components/ui/user-selector";
+import KeyboardShortcuts from "@/components/ui/keyboard-shortcuts";
 import { usersApi, tokensApi } from "@/services/api";
 import toast from "react-hot-toast";
 
@@ -82,15 +85,12 @@ export default function TokensPage() {
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        toast.success("Token berhasil disalin ke clipboard");
-      })
-      .catch(() => {
-        toast.error("Gagal menyalin token");
-      });
+  const handleCopyToken = (text) => {
+    copyToClipboard(
+      text,
+      () => toast.success("Token berhasil disalin ke clipboard"),
+      () => toast.error("Gagal menyalin token - silakan copy manual")
+    );
   };
 
   const resetForm = () => {
@@ -201,7 +201,7 @@ export default function TokensPage() {
                   className="pr-12 font-mono text-sm"
                 />
                 <button
-                  onClick={() => copyToClipboard(generatedToken?.token)}
+                  onClick={() => handleCopyToken(generatedToken?.token)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
                 >
                   <Copy className="h-4 w-4" />
@@ -249,7 +249,7 @@ export default function TokensPage() {
             {/* Actions */}
             <div className="flex gap-4 pt-4">
               <Button
-                onClick={() => copyToClipboard(generatedToken?.token)}
+                onClick={() => handleCopyToken(generatedToken?.token)}
                 className="flex-1"
               >
                 <Copy className="h-4 w-4 mr-2" />
@@ -264,152 +264,219 @@ export default function TokensPage() {
         </Card>
       ) : (
         /* Token Generation Form */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pilih Karyawan</CardTitle>
-              <CardDescription>
-                Pilih karyawan yang membutuhkan akses password
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
-                  Nama Karyawan
-                </label>
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="glass-input w-full"
-                >
-                  <option value="">Pilih karyawan...</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name} (@{user.username}) - {user.department}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedUser && (
-                <div className="glass-card p-4">
-                  <h4 className="font-medium text-white mb-2">
-                    Detail Karyawan
-                  </h4>
-                  {(() => {
-                    const user = users.find(
-                      (u) => u.id === parseInt(selectedUser)
-                    );
-                    return user ? (
-                      <div className="text-sm space-y-1">
-                        <p className="text-white/80">Nama: {user.full_name}</p>
-                        <p className="text-white/80">
-                          Username: @{user.username}
-                        </p>
-                        <p className="text-white/80">
-                          Departemen: {user.department}
-                        </p>
-                        <p className="text-white/80">
-                          Status:
-                          <span className="text-green-400 ml-1">Aktif</span>
-                        </p>
-                      </div>
-                    ) : null;
-                  })()}
+        <>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <User className="h-5 w-5 text-white" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Atur Durasi Token</CardTitle>
-              <CardDescription>
-                Tentukan berapa lama token akan berlaku
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
-                  Durasi (menit)
-                </label>
-                <Input
-                  type="number"
-                  min="5"
-                  max="60"
-                  value={duration}
-                  onChange={(e) => setDuration(parseInt(e.target.value) || 30)}
-                  placeholder="Masukkan durasi dalam menit"
-                />
-                <p className="text-xs text-white/60 mt-1">
-                  Minimal 5 menit, maksimal 60 menit
-                </p>
-              </div>
-
-              {/* Duration Presets */}
-              <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
-                  Preset Durasi
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[15, 30, 60].map((preset) => (
-                    <Button
-                      key={preset}
-                      variant={duration === preset ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setDuration(preset)}
-                    >
-                      {preset} mnt
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preview */}
-              <div className="glass-card p-4">
-                <h4 className="font-medium text-white mb-2">Preview</h4>
-                <div className="text-sm space-y-1">
-                  <p className="text-white/80">
-                    Token akan berlaku:{" "}
-                    <span className="text-blue-400">{duration} menit</span>
+                <div>
+                  <p className="text-2xl font-bold text-white">
+                    {users.length}
                   </p>
-                  <p className="text-white/80">
-                    Berlaku sampai:{" "}
-                    <span className="text-green-400">
-                      {new Date(
-                        Date.now() + duration * 60 * 1000
-                      ).toLocaleString("id-ID", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </p>
+                  <p className="text-sm text-white/70">Total Karyawan</p>
                 </div>
               </div>
+            </div>
 
-              <Button
-                onClick={handleGenerateToken}
-                disabled={!selectedUser || loading}
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 mr-2 border-2 border-white/30 border-t-white rounded-full"></div>
-                    Membuat Token...
-                  </>
-                ) : (
-                  <>
-                    <Key className="h-4 w-4 mr-2" />
-                    Generate Token
-                  </>
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">
+                    {users.filter((u) => u.is_active).length}
+                  </p>
+                  <p className="text-sm text-white/70">Karyawan Aktif</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Key className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">
+                    {selectedUser ? "1" : "0"}
+                  </p>
+                  <p className="text-sm text-white/70">Dipilih</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Pilih Karyawan
+                </CardTitle>
+                <CardDescription>
+                  Cari dan pilih karyawan yang membutuhkan akses password
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Pilih Karyawan
+                  </label>
+                  <UserSelector
+                    users={users}
+                    selectedUser={selectedUser}
+                    onUserSelect={setSelectedUser}
+                  />
+                </div>
+
+                {selectedUser && (
+                  <div className="glass-card p-4">
+                    <h4 className="font-medium text-white mb-2 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      Karyawan Dipilih
+                    </h4>
+                    {(() => {
+                      const user = users.find(
+                        (u) => u.id === parseInt(selectedUser)
+                      );
+                      return user ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                              <span className="text-white font-semibold">
+                                {user.full_name.charAt(0)}
+                              </span>
+                            </div>
+                            <div>
+                              <h5 className="font-medium text-white">
+                                {user.full_name}
+                              </h5>
+                              <p className="text-sm text-white/70">
+                                @{user.username}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-white/60">Departemen:</span>
+                              <p className="text-white font-medium">
+                                {user.department}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-white/60">Status:</span>
+                              <p className="text-green-400 font-medium">
+                                ● Aktif
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+
+                {/* Keyboard Shortcuts */}
+                <KeyboardShortcuts className="mt-4" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Atur Durasi Token</CardTitle>
+                <CardDescription>
+                  Tentukan berapa lama token akan berlaku
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Durasi (menit)
+                  </label>
+                  <Input
+                    type="number"
+                    min="5"
+                    max="60"
+                    value={duration}
+                    onChange={(e) =>
+                      setDuration(parseInt(e.target.value) || 30)
+                    }
+                    placeholder="Masukkan durasi dalam menit"
+                  />
+                  <p className="text-xs text-white/60 mt-1">
+                    Minimal 5 menit, maksimal 60 menit
+                  </p>
+                </div>
+
+                {/* Duration Presets */}
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Preset Durasi
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[15, 30, 60].map((preset) => (
+                      <Button
+                        key={preset}
+                        variant={duration === preset ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setDuration(preset)}
+                      >
+                        {preset} mnt
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview */}
+                <div className="glass-card p-4">
+                  <h4 className="font-medium text-white mb-2">Preview</h4>
+                  <div className="text-sm space-y-1">
+                    <p className="text-white/80">
+                      Token akan berlaku:{" "}
+                      <span className="text-blue-400">{duration} menit</span>
+                    </p>
+                    <p className="text-white/80">
+                      Berlaku sampai:{" "}
+                      <span className="text-green-400">
+                        {new Date(
+                          Date.now() + duration * 60 * 1000
+                        ).toLocaleString("id-ID", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleGenerateToken}
+                  disabled={!selectedUser || loading}
+                  className="w-full"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 mr-2 border-2 border-white/30 border-t-white rounded-full"></div>
+                      Membuat Token...
+                    </>
+                  ) : (
+                    <>
+                      <Key className="h-4 w-4 mr-2" />
+                      Generate Token
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
 
       {/* Instructions */}

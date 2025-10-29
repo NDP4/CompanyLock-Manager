@@ -344,7 +344,7 @@ export default function AuditLogsPage() {
             <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className="glass-input"
+              className="glass-select"
             >
               <option value="all">Semua Aksi</option>
               <option value="login">Masuk Sistem</option>
@@ -359,7 +359,7 @@ export default function AuditLogsPage() {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="glass-input"
+              className="glass-select"
             >
               <option value="all">Semua Waktu</option>
               <option value="today">Hari Ini</option>

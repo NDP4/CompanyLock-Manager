@@ -1,0 +1,368 @@
+@startuml Sequence_Fase4_KaryawanAksesToken
+!theme plain
+
+title Fase 4: Karyawan Menggunakan Token\nCompanyLock Manager System
+
+actor "Karyawan" as Employee
+participant "Web Browser" as Browser
+participant "Frontend\n(React App)" as Frontend  
+participant "Backend API" as Backend
+participant "Token Service" as TokenService
+participant "Database" as DB
+participant "Encryption\nService" as Encryption
+
+== Sub-Fase 4A: Karyawan Buka Sistem ==
+
+Employee -> Browser : **1. Buka web browser**
+note right of Employee
+  Karyawan bisa pakai:
+  - Chrome, Firefox, Edge, Safari
+  - Browser di komputer kantor
+  - Browser di HP (mobile responsive)
+  - Komputer lain jika PC utama bermasalah
+end note
+
+Employee -> Browser : **2. Ketik URL sistem**\nhttp://companylockmanager.local
+note right of Employee
+  URL bisa berupa:
+  - IP address: http://192.168.1.100
+  - Domain lokal: http://companylock.local  
+  - Domain publik: https://password.company.com
+  - Sesuai konfigurasi IT
+end note
+
+Browser -> Frontend : **3. Request halaman utama**\nGET /
+
+Frontend -> Browser : **4. Load halaman login**
+note right Frontend
+  Halaman yang muncul:
+  
+  📱 **CompanyLock Manager**
+  
+  Selamat datang! Pilih cara akses:
+  
+  🔐 [Login Regular] 
+      Username & Password
+      
+  🎟️ [Akses dengan Token]
+      Punya token dari admin IT?
+      
+  📞 Need Help? 
+      Call IT: ext. 123
+end note
+
+== Sub-Fase 4B: Karyawan Pilih Akses Token ==
+
+Employee -> Browser : **5. Klik "Akses dengan Token"**
+
+Browser -> Frontend : **6. Navigasi ke halaman token**\n/token-access
+
+Frontend -> Browser : **7. Tampilkan form token**
+note right of Frontend
+  **Form Token Access:**
+  
+  🎟️ **Masukkan Token Akses**
+  
+  Token yang diberikan admin IT:
+  ┌─────────────────────────────────┐
+  │ [                             ] │  ← Input field
+  └─────────────────────────────────┘
+  
+  💡 Tips:
+  • Token terdiri dari 32 karakter
+  • Bisa copy-paste dari chat WhatsApp  
+  • Token hanya berlaku sekali pakai
+  • Hubungi admin IT jika bermasalah
+  
+  [Submit] [Kembali ke Login] [Help]
+end note
+
+== Sub-Fase 4C: Karyawan Input Token ==
+
+Employee -> Browser : **8. Paste/ketik token**
+note right of Employee
+  Karyawan input token:
+  "A7X9M2K4P8Q1W5E3R6T7Y9U0I2O4P6"
+  
+  Bisa dengan cara:
+  - Copy paste dari WhatsApp
+  - Ketik manual (rawan typo)
+  - Scan QR code (jika ada)
+  - Voice input (di mobile)
+end note
+
+Browser -> Frontend : **9. Validasi format token**
+Frontend -> Frontend : **Client-side validation**
+note right of Frontend
+  Validasi di frontend:
+  - Panjang 32 karakter? ✓
+  - Hanya alphanumeric? ✓  
+  - Tidak ada spasi/karakter khusus? ✓
+  - Field tidak kosong? ✓
+end note
+
+alt **Format Token Valid**
+    Employee -> Browser : **10a. Klik tombol "Submit"**
+    
+else **Format Token Invalid**  
+    Frontend -> Browser : **10b. Tampilkan error**
+    note right of Frontend
+      ❌ **Error Validation**
+      
+      Token tidak valid:
+      • Token harus 32 karakter
+      • Hanya huruf dan angka
+      • Periksa kembali token dari admin
+      
+      [Coba Lagi] [Contact Admin]
+    end note
+    
+    Employee -> Browser : **Perbaiki input dan submit lagi**
+end
+
+== Sub-Fase 4D: Validasi Token di Backend ==
+
+Browser -> Frontend : **11. Submit form token**
+Frontend -> Backend : **12. Kirim token untuk validasi**\nPOST /api/token/validate
+note right of Frontend
+  Request body:
+  {
+    "token": "A7X9M2K4P8Q1W5E3R6T7Y9U0I2O4P6",
+    "user_agent": "Chrome/119.0.0.0",
+    "ip_address": "192.168.1.105"
+  }
+end note
+
+Backend -> TokenService : **13. Validasi token**
+TokenService -> DB : **Cek token di database**\nSELECT * FROM tokens WHERE token = ? AND is_active = true
+
+alt **Token Ditemukan**
+    DB -> TokenService : Token data found
+    
+    TokenService -> TokenService : **14a. Validasi expired**
+    note right of TokenService
+      Cek kondisi:
+      - is_active = true? ✓
+      - expires_at > NOW()? 
+      - used_at IS NULL? (belum pernah dipakai)
+      - revoked_at IS NULL?
+    end note
+    
+    alt **Token Masih Valid**
+        TokenService -> DB : **15a. Tandai token sebagai used**\nUPDATE tokens SET used_at = NOW(), ip_address = ? WHERE token = ?
+        
+        TokenService -> DB : **16a. Ambil data user**\nSELECT u.*, t.* FROM users u JOIN tokens t ON u.id = t.user_id WHERE t.token = ?
+        
+        DB -> TokenService : User + token data
+        TokenService -> Backend : Valid token + user data
+        
+        Backend -> DB : **17a. Log akses token**
+        note right of Backend
+          INSERT INTO audit_logs:
+          - action: "TOKEN_ACCESSED"  
+          - user_id: 25
+          - details: {
+              "token_used": "A7X9...P6",
+              "access_time": "2024-10-24 14:15:00",
+              "ip_address": "192.168.1.105",
+              "user_agent": "Chrome/119.0.0.0"
+            }
+        end note
+        
+    else **Token Expired**
+        TokenService -> Backend : **15b. Token expired error**
+        Backend -> Frontend : **Error: Token expired** 
+        Frontend -> Browser : **Tampilkan pesan expired**
+        note right of Frontend
+          ⏰ **Token Sudah Kedaluwarsa**
+          
+          Token yang Anda masukkan sudah tidak berlaku.
+          
+          Kemungkinan penyebab:
+          • Token sudah lebih dari 30 menit
+          • Token sudah pernah dipakai
+          • Token dibatalkan oleh admin
+          
+          💡 **Solusi:**
+          Hubungi admin IT untuk token baru
+          
+          [Contact Admin] [Back to Login]
+        end note
+        
+    else **Token Sudah Dipakai**
+        TokenService -> Backend : **15c. Token already used error**
+        Backend -> Frontend : **Error: Token sudah digunakan**
+        Frontend -> Browser : **Tampilkan pesan sudah dipakai**
+        note right of Frontend
+          🔒 **Token Sudah Digunakan**
+          
+          Token ini sudah pernah dipakai sebelumnya.
+          Untuk keamanan, setiap token hanya bisa 
+          digunakan satu kali.
+          
+          Terakhir digunakan: 14:15 dari IP 192.168.1.105
+          
+          💡 **Solusi:**  
+          Minta token baru ke admin IT
+          
+          [Request New Token] [Back]
+        end note
+    end
+    
+else **Token Tidak Ditemukan**
+    DB -> TokenService : No token found
+    TokenService -> Backend : **14b. Invalid token error**
+    Backend -> Frontend : **Error: Token tidak valid**
+    Frontend -> Browser : **Tampilkan error invalid**
+    note right of Frontend
+      ❌ **Token Tidak Valid**
+      
+      Token yang Anda masukkan tidak ditemukan 
+      dalam sistem.
+      
+      Kemungkinan penyebab:
+      • Salah ketik token
+      • Token palsu/tidak resmi
+      • Token sudah dihapus dari sistem
+      
+      💡 **Solusi:**
+      • Periksa kembali token dari admin
+      • Copy-paste langsung dari chat
+      • Hubungi admin jika masih bermasalah
+      
+      [Try Again] [Contact Admin]
+    end note
+end
+
+== Sub-Fase 4E: Tampilkan Password (Jika Token Valid) ==
+
+alt **Token Valid - Lanjut ke Password Display**
+    Backend -> Encryption : **18. Decrypt password user**
+    Encryption -> Backend : Decrypted password
+    
+    Backend -> Frontend : **19. Kirim data password**
+    note right of Backend
+      Response success:
+      {
+        "success": true,
+        "user": {
+          "username": "john.doe",
+          "full_name": "John Doe", 
+          "department": "Finance"
+        },
+        "password": "P@ssw0rd#123",
+        "token_expires_at": "2024-10-24 14:30:00",
+        "message": "Token berhasil divalidasi"
+      }
+    end note
+    
+    Frontend -> Browser : **20. Redirect ke halaman password**\n/password-viewer
+    
+    Browser -> Frontend : **21. Load password viewer page**
+    Frontend -> Browser : **22. Tampilkan password**
+    note right of Frontend
+      🔐 **Password Anda**
+      
+      **Informasi Akun:**
+      👤 Nama: John Doe  
+      💼 Departmen: Finance
+      🆔 Username: john.doe
+      
+      **Password Login Windows:**
+      ┌─────────────────────────────────┐
+      │ P@ssw0rd#123            [Copy] │
+      └─────────────────────────────────┘
+      
+      ⚠️ **Penting:**
+      • Password ini untuk login Windows/komputer
+      • Jangan share ke orang lain
+      • Ganti password setelah berhasil login
+      • Halaman ini akan tertutup otomatis dalam 5 menit
+      
+      [Copy Password] [Close] [Contact Admin]
+      
+      **Next Steps:**
+      1. Copy password di atas
+      2. Lock/logout Windows (Ctrl+L)  
+      3. Login dengan username & password baru
+      4. Ganti password di Windows Settings
+    end note
+end
+
+== Sub-Fase 4F: Karyawan Copy Password ==
+
+Employee -> Browser : **23. Klik "Copy Password"**
+Browser -> Frontend : **Copy ke clipboard**
+Frontend -> Browser : **Konfirmasi berhasil copy**
+note right of Frontend
+  ✅ **Password berhasil disalin!**
+  
+  Password sudah ada di clipboard.
+  Sekarang Anda bisa:
+  
+  1. Minimize browser ini
+  2. Lock komputer (Ctrl+L)
+  3. Paste password untuk login
+  
+  **Auto-close dalam:** 4:32
+  
+  [Keep Open] [Close Now] [Copy Again]
+end note
+
+== Sub-Fase 4G: Auto-Close & Cleanup ==
+
+Frontend -> Frontend : **24. Start countdown timer**
+note right of Frontend
+  Timer countdown:
+  - 5 menit = 300 detik
+  - Update setiap detik  
+  - Tampil di pojok kanan atas
+  - Warning di 1 menit terakhir
+end note
+
+alt **Karyawan Close Manual**
+    Employee -> Browser : **25a. Klik "Close Now"**
+    Browser -> Frontend : **Clear sensitive data**
+    Frontend -> Browser : **Redirect ke homepage**
+    
+else **Auto-Close Timeout**
+    Frontend -> Frontend : **25b. Countdown reaches 0**
+    Frontend -> Frontend : **Auto clear & redirect**
+    Frontend -> Browser : **Tampilkan session expired**
+    note right of Frontend
+      🕐 **Sesi Berakhir**
+      
+      Halaman password sudah ditutup otomatis 
+      untuk keamanan.
+      
+      Jika masih butuh password, hubungi 
+      admin IT untuk token baru.
+      
+      [Back to Home] [Contact Admin]
+    end note
+end
+
+== Monitoring & Security ==
+
+note over Employee, DB
+  **Security Measures Aktif:**
+  
+  🔐 **Data Protection:**
+  - Password hanya di-decrypt saat diperlukan
+  - Tidak disimpan di browser storage/cache
+  - Auto-clear clipboard setelah 10 menit
+  - HTTPS encryption untuk transfer data
+  
+  📊 **Activity Logging:**
+  - Log setiap akses token dengan timestamp
+  - Record IP address dan user agent
+  - Track duration halaman terbuka
+  - Monitor suspicious patterns
+  
+  ⚡ **Real-time Monitoring:**
+  - Alert admin jika token tidak digunakan > 15 menit
+  - Notification jika akses dari IP tidak biasa
+  - Auto-revoke token jika detect malicious activity
+end note
+
+@enduml

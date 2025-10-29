@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipboard Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1e1e1e;
+            color: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #005a9e;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #2d2d2d;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Clipboard API Test</h1>
+
+    <button onclick="testModernClipboard()">Test Modern Clipboard API</button>
+    <button onclick="testFallbackMethod()">Test Fallback Method</button>
+    <button onclick="testUtilityFunction()">Test Utility Function</button>
+
+    <div class="result" id="result"></div>
+
+    <script>
+        const log = (message) => {
+            document.getElementById('result').innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+        };
+
+        const testModernClipboard = async () => {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText("Test modern clipboard");
+                    log("✅ Modern clipboard API works");
+                } else {
+                    log("❌ Modern clipboard API not available");
+                }
+            } catch (err) {
+                log(`❌ Modern clipboard failed: ${err.message}`);
+            }
+        };
+
+        const testFallbackMethod = () => {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = "Test fallback method";
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                const successful = document.execCommand('copy');
+                textArea.remove();
+
+                if (successful) {
+                    log("✅ Fallback method works");
+                } else {
+                    log("❌ Fallback method failed");
+                }
+            } catch (err) {
+                log(`❌ Fallback method error: ${err.message}`);
+            }
+        };
+
+        // Copy of our utility function
+        const copyToClipboard = async (text, onSuccess, onError) => {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    if (onSuccess) onSuccess();
+                    return true;
+                }
+
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                textArea.style.opacity = '0';
+                textArea.style.pointerEvents = 'none';
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful && onSuccess) {
+                        onSuccess();
+                    } else if (!successful && onError) {
+                        onError('execCommand failed');
+                    }
+                    return successful;
+                } catch (err) {
+                    if (onError) onError(err);
+                    return false;
+                } finally {
+                    textArea.remove();
+                }
+            } catch (err) {
+                console.error('Copy to clipboard failed:', err);
+                if (onError) onError(err);
+                return false;
+            }
+        };
+
+        const testUtilityFunction = () => {
+            copyToClipboard(
+                "Test utility function",
+                () => log("✅ Utility function works"),
+                (err) => log(`❌ Utility function failed: ${err}`)
+            );
+        };
+
+        // Initial environment check
+        log(`Navigator clipboard available: ${!!navigator.clipboard}`);
+        log(`Window is secure context: ${!!window.isSecureContext}`);
+        log(`Document execCommand supported: ${!!document.queryCommandSupported && document.queryCommandSupported('copy')}`);
+    </script>
+</body>
+
+</html>

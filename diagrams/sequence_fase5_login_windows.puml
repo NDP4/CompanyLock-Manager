@@ -1,0 +1,422 @@
+@startuml Sequence_Fase5_LoginWindows
+!theme plain
+
+title Fase 5: Karyawan Login ke Windows\nCompanyLock Manager System
+
+actor "Karyawan" as Employee
+participant "Web Browser" as Browser
+participant "Windows\nLogin Screen" as Windows
+participant "Active Directory\n(Domain Controller)" as AD
+participant "Local Computer" as Computer
+participant "CompanyLock\nSystem" as Backend
+
+== Sub-Fase 5A: Karyawan Siap Login Windows ==
+
+Employee -> Employee : **1. Sudah dapat password dari sistem**
+note right of Employee
+  Karyawan sudah:
+  ✓ Dapat token dari admin IT
+  ✓ Akses sistem CompanyLock 
+  ✓ Lihat password: "P@ssw0rd#123"
+  ✓ Copy password ke clipboard
+  ✓ Siap untuk login Windows
+end note
+
+Employee -> Browser : **2. Minimize/tutup browser**
+note right of Employee
+  Opsional - untuk fokus ke login Windows:
+  - Minimize browser (Alt+Tab nanti)
+  - Atau biarkan terbuka untuk referensi
+  - Pastikan password masih di clipboard
+end note
+
+== Sub-Fase 5B: Lock/Logout Windows ==
+
+Employee -> Computer : **3. Lock komputer saat ini**
+note right of Employee
+  Cara lock Windows:
+  
+  **Keyboard Shortcut:**
+  • Windows + L (paling cepat)
+  • Ctrl + Alt + Del → Lock
+  
+  **Mouse/Menu:**
+  • Start Menu → Profile → Lock
+  • Klik jam pojok kanan → Lock
+  
+  **Touchpad Gesture:**
+  • Three-finger swipe (jika aktif)
+end note
+
+Computer -> Windows : **4. Tampilkan Windows Lock Screen**
+note right of Windows
+  🖥️ **Windows Lock Screen**
+  
+  🕐 14:20                    📶 WiFi Connected
+  
+  ──────────────────────────────────────
+  
+                🏢 COMPANY NAME
+                
+         Welcome Back! Press any key
+              or click to continue
+              
+  ──────────────────────────────────────
+  
+  🔐 Locked by: John Doe
+  📅 Wednesday, October 24, 2024
+  
+  [Click anywhere or press any key to login]
+end note
+
+== Sub-Fase 5C: Mulai Proses Login ==
+
+Employee -> Windows : **5. Klik layar atau tekan key**
+Windows -> Windows : **6. Tampilkan login form**
+note right of Windows
+  **Windows Login Form:**
+  
+  👤 **John Doe**
+      COMPANY\john.doe
+      
+  🔐 **Password:**
+  ┌─────────────────────────────────┐
+  │ ●●●●●●●●●●●●●●●●●●●●●●●●●●●●● │
+  └─────────────────────────────────┘
+  
+  [Submit] [Switch User] [Sign-in Options]
+  
+  **Other Options:**
+  🔑 Use PIN instead
+  👁️ Use Windows Hello  
+  🆔 Use Smart Card
+  
+  💡 **Hint:** New password from IT
+end note
+
+== Sub-Fase 5D: Input Username dan Password ==
+
+alt **Username Sudah Benar**
+    note right of Windows
+      Username biasanya sudah terisi otomatis:
+      - john.doe
+      - COMPANY\john.doe  
+      - john.doe@company.com
+      
+      Sesuai dengan konfigurasi domain
+    end note
+    
+else **Perlu Ganti Username**  
+    Employee -> Windows : **7a. Klik "Switch User"**
+    Windows -> Windows : **List available users**
+    Employee -> Windows : **Pilih user yang benar**
+    
+    alt **User Tidak Ada di List**
+        Employee -> Windows : **7b. Klik "Other user"**  
+        Windows -> Windows : **Tampilkan form manual input**
+        Employee -> Windows : **Ketik username manual**
+        note right of Employee
+          Manual input username:
+          - john.doe
+          - .\john.doe (local user)
+          - COMPANY\john.doe (domain user)
+          - john.doe@company.local
+        end note
+    end
+end
+
+Employee -> Windows : **8. Focus ke field password**
+Employee -> Windows : **9. Paste password baru**\nCtrl+V
+note right of Employee
+  Karyawan paste password:
+  "P@ssw0rd#123"
+  
+  **Tips Paste:**
+  - Ctrl+V (standard)
+  - Right-click → Paste
+  - Shift+Insert (alternatif)
+  
+  **Yang terlihat:** ●●●●●●●●●●●●
+  (Password ter-mask untuk security)
+end note
+
+== Sub-Fase 5E: Submit Login ==
+
+Employee -> Windows : **10. Tekan Enter atau klik Submit**
+Windows -> Computer : **11. Proses autentikasi**
+
+alt **Domain Environment (Active Directory)**
+    Computer -> AD : **12a. Kirim credentials ke Domain Controller**\nLDAP Authentication Request
+    note right of Computer
+      Domain authentication:
+      - Username: COMPANY\john.doe
+      - Password: P@ssw0rd#123  
+      - Computer: WORKSTATION01
+      - Domain: COMPANY.LOCAL
+    end note
+    
+    AD -> AD : **13a. Validasi di Active Directory**
+    note right of AD
+      AD checks:
+      ✓ User exists in domain
+      ✓ Password matches hash in AD
+      ✓ Account is enabled  
+      ✓ Account not locked/expired
+      ✓ Logon hours allowed
+      ✓ Computer allowed for user
+    end note
+    
+    alt **AD Authentication Success**
+        AD -> Computer : **14a. Authentication success + user profile**
+        Computer -> Computer : **Load domain profile**
+        note right of Computer
+          Domain login berhasil:
+          - Load user profile dari server
+          - Apply group policies  
+          - Mount network drives
+          - Sync domain settings
+          - Create local cached credentials
+        end note
+        
+    else **AD Authentication Failed**
+        AD -> Computer : **14b. Authentication failed**
+        Computer -> Windows : **Show domain login error**
+        Windows -> Employee : **Tampilkan error message**
+        note right of Windows
+          ❌ **Login Failed**
+          
+          The username or password is incorrect.
+          
+          Possible causes:
+          • Wrong password 
+          • Account locked/disabled
+          • Domain controller unreachable
+          • Password policy violation
+          
+          [Try Again] [Use Cached Credentials] [Contact IT]
+        end note
+    end
+    
+else **Local Computer (Workgroup)**
+    Computer -> Computer : **12b. Validasi lokal**
+    note right of Computer
+      Local authentication:
+      - Check local user database (SAM)
+      - Validate password hash
+      - Check account status
+      - No network required
+    end note
+    
+    alt **Local Authentication Success**
+        Computer -> Computer : **13b. Load local profile**
+        note right of Computer
+          Local login berhasil:
+          - Load user profile dari C:\Users\
+          - Apply local policies
+          - No network dependencies
+          - Faster login process
+        end note
+        
+    else **Local Authentication Failed**
+        Computer -> Windows : **13c. Local login error**
+        Windows -> Employee : **Show local login error**
+        note right of Windows
+          ❌ **Incorrect Password**
+          
+          The password is incorrect. Try again.
+          
+          Remember:
+          • Password is case-sensitive
+          • Check Caps Lock status  
+          • Use the new password from IT
+          
+          [Try Again] [Reset Password] [Use PIN]
+        end note
+    end
+end
+
+== Sub-Fase 5F: Login Berhasil ==
+
+alt **Login Success - Load Desktop**
+    Computer -> Windows : **15a. Start loading Windows desktop**
+    Windows -> Employee : **Show "Welcome" loading screen**
+    note right of Windows
+      🔄 **Loading Desktop...**
+      
+      Welcome, John Doe
+      
+      Please wait while we set up your desktop.
+      This may take a few moments.
+      
+      • Loading user profile...
+      • Applying policies...  
+      • Starting services...
+      • Preparing desktop...
+    end note
+    
+    Computer -> Computer : **16a. Load user environment**
+    note right of Computer
+      Desktop loading process:
+      ✓ Load Windows Explorer (taskbar, start menu)
+      ✓ Load user-specific applications  
+      ✓ Mount network drives/shares
+      ✓ Apply wallpaper and themes
+      ✓ Start startup programs
+      ✓ Sync OneDrive/cloud storage
+      ✓ Load browser bookmarks/settings
+    end note
+    
+    Computer -> Employee : **17a. Show desktop ready**
+    note right of Employee
+      🖥️ **Desktop Siap Digunakan!**
+      
+      ✅ Login berhasil dengan password baru
+      ✅ Desktop fully loaded
+      ✅ Semua aplikasi ready
+      ✅ Network drives connected
+      
+      **Next Steps:**
+      1. ✅ Berhasil login - DONE!
+      2. 🔄 Ganti password (recommended)
+      3. 📞 Konfirmasi ke admin IT  
+      4. 💼 Lanjut bekerja normal
+    end note
+
+else **Login Gagal - Troubleshooting** 
+    Windows -> Employee : **15b. Show detailed error**
+    note right of Windows
+      ❌ **Login Issues - Troubleshooting**
+      
+      **Common Problems:**
+      
+      🔐 **Wrong Password:**
+      • Double-check password dari sistem
+      • Case-sensitive (besar-kecil huruf)
+      • Copy paste lagi dari browser
+      
+      🌐 **Network Issues:**  
+      • Domain controller tidak terjangkau
+      • WiFi/LAN connection bermasalah
+      • Use cached credentials jika ada
+      
+      ⏰ **Timing Issues:**
+      • Password baru belum sync ke AD
+      • Tunggu 5-10 menit, coba lagi
+      • Atau hubungi admin IT
+      
+      🔒 **Account Issues:**
+      • Account locked after failed attempts
+      • Account disabled/expired  
+      • Policy restrictions
+      
+      [Try Again] [Use Old Password] [Contact IT]
+    end note
+end
+
+== Sub-Fase 5G: Post-Login Actions ==
+
+alt **Login Berhasil - Tindak Lanjut**
+    Employee -> Employee : **18a. Konfirmasi ke admin IT**
+    note right of Employee
+      Karyawan bisa hubungi admin:
+      
+      **WhatsApp/Chat:**
+      "Pak/Bu, sudah berhasil login pakai 
+      password baru. Terima kasih banyak!"
+      
+      **Email:**
+      Subject: Login Berhasil - John Doe
+      "Password token sudah berhasil digunakan."
+      
+      **Langsung/Telepon:**  
+      "Pak admin, saya John dari Finance.
+      Sudah bisa login, terima kasih ya!"
+    end note
+    
+    Employee -> Computer : **18b. Ganti password (opsional)**
+    Computer -> Windows : **Open Change Password dialog**
+    note right of Computer
+      **Cara ganti password Windows:**
+      
+      **Method 1 - Ctrl+Alt+Del:**
+      1. Tekan Ctrl+Alt+Del
+      2. Klik "Change a password"
+      3. Input old password: P@ssw0rd#123
+      4. Input new password (2x)
+      
+      **Method 2 - Settings:**  
+      1. Windows Settings → Accounts
+      2. Sign-in options → Password
+      3. Change password
+      
+      **Method 3 - Command:**
+      1. Run as admin: net user john.doe *
+      2. Input new password
+    end note
+    
+    Employee -> Backend : **18c. Sistem auto-log successful usage**
+    note right of Backend
+      **Auto-tracking di CompanyLock:**
+      
+      Token "A7X9...P6" status:
+      ✅ Used successfully at 14:20
+      ✅ Windows login confirmed  
+      📊 Response time: 5 minutes total
+      🎯 Success rate: 100% (1/1)
+      
+      **Audit Log Entry:**
+      - Action: "TOKEN_SUCCESS_LOGIN"
+      - User: john.doe (ID: 25)
+      - Time: 2024-10-24 14:20:15
+      - Duration: 5 minutes 15 seconds
+      - Status: SUCCESS
+    end note
+
+else **Login Gagal - Support Needed**
+    Employee -> Employee : **18d. Hubungi admin untuk bantuan lanjutan**
+    note right of Employee
+      **Jika masih bermasalah:**
+      
+      📞 "Pak admin, saya sudah coba password 
+      yang dikasih tapi masih gabisa login.
+      Error-nya bilang 'incorrect password'."
+      
+      **Info yang perlu dikasih ke admin:**
+      • Username yang dipakai: john.doe
+      • Error message yang muncul
+      • Sudah coba berapa kali
+      • Komputer domain atau workgroup
+      • Network connection status
+    end note
+end
+
+== System Monitoring & Analytics ==
+
+note over Employee, Backend
+  **Automatic System Monitoring:**
+  
+  📊 **Success Analytics:**
+  - Track login success rate per token
+  - Average time dari token → Windows login  
+  - Peak usage hours and patterns
+  - Department-wise usage statistics
+  
+  🔍 **Failure Analysis:**
+  - Common error patterns and causes
+  - Network vs credential vs timing issues  
+  - Retry patterns and success after retry
+  - Escalation triggers for manual support
+  
+  ⚡ **Real-time Dashboards:**
+  - Admin dashboard shows live token usage
+  - Success/failure rates in real-time
+  - Queue of pending support requests  
+  - Automated alerts for system issues
+  
+  🎯 **Performance Metrics:**
+  - Target: 90% first-attempt success rate
+  - Target: < 3 minutes total resolution time
+  - Target: < 5% tokens requiring admin follow-up
+end note
+
+@enduml

@@ -1,0 +1,273 @@
+@startuml Sequence_Fase3_GenerateToken
+!theme plain
+
+title Fase 3: Admin Generate Token Akses\nCompanyLock Manager System
+
+actor "Admin IT" as Admin
+actor "Karyawan" as Employee
+participant "Admin Panel\n(Dashboard)" as AdminPanel
+participant "Backend API" as Backend
+participant "Token Service" as TokenService
+participant "Database" as DB
+participant "Encryption\nService" as Encryption
+
+== Sub-Fase 3A: Admin Mulai Generate Token ==
+
+Admin -> AdminPanel : **1. Klik tombol "Generate Token"**
+note right of Admin
+  Admin sudah yakin:
+  - Data karyawan benar
+  - Identitas terverifikasi
+  - Tidak ada token aktif
+  - Karyawan menunggu
+end note
+
+AdminPanel -> AdminPanel : **2. Tampilkan form generate token**
+note right of AdminPanel
+  Form berisi:
+  - Nama karyawan: John Doe (readonly)
+  - Username: john.doe (readonly) 
+  - Durasi token: [dropdown]
+    * 15 menit
+    * 30 menit (default)
+    * 1 jam
+    * 2 jam
+  - Alasan: [textarea] "Lupa password"
+  - Password baru: [checkbox] "Generate password baru?"
+end note
+
+== Sub-Fase 3B: Admin Isi Form Token ==
+
+Admin -> AdminPanel : **3. Pilih durasi token**
+note right of Admin
+  Pertimbangan durasi:
+  - 15 menit: untuk akses cepat
+  - 30 menit: standard (paling sering)
+  - 1 jam: untuk troubleshooting
+  - 2 jam: untuk setup/install software
+end note
+
+Admin -> AdminPanel : **4. Isi alasan dan opsi**
+note right of AdminPanel
+  Form diisi:
+  - Durasi: 30 menit
+  - Alasan: "Karyawan lupa password login Windows"
+  - Generate password baru: ✓ (checked)
+  - Notes: "Urgent - Finance deadline"
+end note
+
+== Sub-Fase 3C: Validasi dan Generate ==
+
+AdminPanel -> Backend : **5. Submit generate token**\nPOST /api/tokens/generate
+note right of AdminPanel
+  Request payload:
+  {
+    "user_id": 25,
+    "duration_minutes": 30,
+    "reason": "Karyawan lupa password login Windows", 
+    "generate_new_password": true,
+    "admin_notes": "Urgent - Finance deadline"
+  }
+end note
+
+Backend -> DB : **6. Cek apakah ada token aktif**\nSELECT * FROM tokens WHERE user_id = 25 AND is_active = true AND expires_at > NOW()
+
+alt **Ada Token Aktif**
+    DB -> Backend : Token aktif ditemukan
+    Backend -> AdminPanel : **Error: Token masih aktif**
+    AdminPanel -> Admin : **Tampilkan error + opsi**
+    note right of AdminPanel
+      "Karyawan ini masih punya token aktif 
+      yang berlaku sampai 14:30.
+      
+      Pilihan:
+      [Batalkan Token Lama] [Lihat Detail] [Batal]"
+    end note
+    
+    alt **Admin Pilih Batalkan Token Lama**
+        Admin -> AdminPanel : Klik "Batalkan Token Lama"
+        AdminPanel -> Backend : PUT /api/tokens/{token_id}/revoke
+        Backend -> DB : UPDATE tokens SET is_active = false, revoked_at = NOW() WHERE id = ?
+        Backend -> AdminPanel : Token lama dibatalkan
+        AdminPanel -> Admin : "Token lama sudah dibatalkan, silakan generate yang baru"
+    end
+    
+else **Tidak Ada Token Aktif**
+    DB -> Backend : No active tokens found
+    
+    Backend -> TokenService : **7. Generate token baru**
+    TokenService -> TokenService : **Generate random token (32 chars)**
+    note right of TokenService
+      Token format:
+      - 32 karakter alphanumeric
+      - Contoh: "A7X9M2K4P8Q1W5E3R6T7Y9U0I2O4P6"
+      - Unique, tidak boleh duplikat
+      - Case-sensitive
+    end note
+    
+    alt **Generate Password Baru = True**
+        TokenService -> TokenService : **Generate password baru**
+        note right of TokenService
+          Password baru:
+          - 12 karakter random
+          - Kombinasi huruf, angka, simbol
+          - Contoh: "P@ssw0rd#123"
+          - Akan di-encrypt sebelum disimpan
+        end note
+        
+        TokenService -> Encryption : **Encrypt password baru**
+        Encryption -> TokenService : Encrypted password
+        
+        Backend -> DB : **Update password karyawan**\nUPDATE users SET password_hash = ? WHERE id = 25
+    end
+    
+    TokenService -> Backend : **Token + password (if generated)**
+    
+    Backend -> DB : **8. Simpan token ke database**
+    note right of Backend
+      INSERT INTO tokens:
+      - token: "A7X9M2K4P8Q1W5E3R6T7Y9U0I2O4P6"
+      - user_id: 25
+      - created_by: admin_id (12)
+      - expires_at: NOW() + 30 minutes
+      - reason: "Karyawan lupa password login Windows"
+      - is_active: true
+      - created_at: NOW()
+    end note
+    
+    Backend -> DB : **9. Catat audit log**
+    note right of Backend
+      INSERT INTO audit_logs:
+      - action: "TOKEN_GENERATED"
+      - admin_id: 12
+      - target_user_id: 25
+      - details: {
+          "duration_minutes": 30,
+          "reason": "Karyawan lupa password login Windows",
+          "password_changed": true,
+          "token_expires_at": "2024-10-24 14:30:00"
+        }
+      - ip_address: admin's IP
+      - timestamp: NOW()
+    end note
+end
+
+== Sub-Fase 3D: Tampilkan Hasil ke Admin ==
+
+Backend -> AdminPanel : **10. Response success**
+AdminPanel -> Admin : **Tampilkan token berhasil dibuat**
+
+note right of AdminPanel
+  **Modal Success:**
+  
+  ✅ Token berhasil dibuat!
+  
+  **Detail Token:**
+  - Token: A7X9M2K4P8Q1W5E3R6T7Y9U0I2O4P6
+  - Untuk: John Doe (john.doe)  
+  - Berlaku: 30 menit (sampai 14:30)
+  - Password baru: P@ssw0rd#123
+  
+  **Tindakan Selanjutnya:**
+  [Salin Token] [Kirim ke Karyawan] [Cetak] [Tutup]
+  
+  **Peringatan:**
+  Token ini hanya ditampilkan sekali!
+  Pastikan sudah disalin sebelum menutup.
+end note
+
+== Sub-Fase 3E: Admin Salin dan Bagikan ==
+
+Admin -> AdminPanel : **11. Klik "Salin Token"**
+AdminPanel -> AdminPanel : **Copy token ke clipboard**
+note right of AdminPanel
+  Yang disalin ke clipboard:
+  
+  "Token akses: A7X9M2K4P8Q1W5E3R6T7Y9U0I2O4P6
+  Password baru: P@ssw0rd#123
+  Berlaku sampai: 14:30 (30 menit)
+  
+  Cara pakai:
+  1. Buka browser
+  2. Masuk ke sistem CompanyLock  
+  3. Masukkan token di halaman akses
+  4. Lihat password untuk login Windows"
+end note
+
+AdminPanel -> Admin : **Konfirmasi "Token berhasil disalin!"**
+
+== Sub-Fase 3F: Admin Bagikan ke Karyawan ==
+
+Admin -> Employee : **12. Kirim token ke karyawan**
+note right of Admin
+  Admin bisa kirim via:
+  
+  **Langsung (Tatap Muka):**
+  "Pak John, tokennya sudah jadi.
+  Saya paste di chat WhatsApp ya, 
+  atau mau saya tuliskan?"
+  
+  **WhatsApp/Chat:**
+  [Paste clipboard content]
+  "Pak John, ini tokennya. 
+  Berlaku 30 menit ya."
+  
+  **Email (Tidak Disarankan):**
+  Karena kurang secure
+  
+  **Telepon:**
+  Baca pelan-pelan sambil 
+  karyawan catat
+end note
+
+Employee -> Admin : **13. Konfirmasi terima token**
+note right of Employee
+  "Baik Pak/Bu, sudah saya catat.
+  Terima kasih banyak atas bantuannya.
+  Kalau ada masalah saya hubungi lagi ya."
+end note
+
+== Sub-Fase 3G: Admin Update Status ==
+
+Admin -> AdminPanel : **14. Tutup modal token**
+AdminPanel -> AdminPanel : **Refresh dashboard**
+AdminPanel -> Backend : GET /api/tokens/active
+Backend -> DB : SELECT * FROM tokens WHERE is_active = true ORDER BY created_at DESC
+DB -> Backend : List active tokens
+Backend -> AdminPanel : Updated token list
+
+AdminPanel -> Admin : **Tampilkan dashboard ter-update**
+note right of AdminPanel
+  **Active Tokens Panel:**
+  
+  🟢 john.doe - A7X9...O4P6
+     ⏱️ Expires: 14:30 (28 menit lagi)
+     📝 Reason: Lupa password login Windows
+     👤 Generated by: admin.it
+     🕐 Created: 14:00
+  
+  [View Details] [Revoke] [Extend]
+end note
+
+== Monitoring & Alerts ==
+
+note over Admin, DB
+  **Sistem Monitoring Otomatis:**
+  
+  ⚡ Real-time Updates:
+  - Dashboard auto-refresh setiap 30 detik
+  - Counter mundur waktu expired token
+  - Notifikasi jika token akan expired dalam 5 menit
+  
+  📊 Statistics Update:
+  - Total token hari ini: +1
+  - Token aktif saat ini: 3
+  - Average response time: < 2 menit
+  
+  🔔 Alerts:
+  - Email ke admin jika > 5 token aktif bersamaan
+  - Log suspicious activity (> 10 token/jam)
+  - Alert jika token tidak digunakan > 15 menit
+end note
+
+@enduml

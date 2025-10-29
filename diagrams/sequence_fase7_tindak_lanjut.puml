@@ -1,0 +1,425 @@
+@startuml Sequence_Fase7_TindakLanjut
+!theme plain
+
+title Fase 7: Tindak Lanjut & Resolusi\nCompanyLock Manager System
+
+actor "Karyawan" as Employee
+actor "Admin IT" as Admin
+participant "Admin Dashboard" as Dashboard
+participant "Backend API" as Backend
+participant "Database" as DB
+participant "Notification\nSystem" as Notifications
+participant "HR System" as HR
+
+== Sub-Fase 7A: Konfirmasi Keberhasilan ==
+
+Employee -> Admin : **1. Konfirmasi berhasil login**
+note right of Employee
+  **Cara karyawan konfirmasi:**
+  
+  📞 **Telepon/WA langsung:**
+  "Pak/Bu admin, saya John dari Finance.
+  Sudah berhasil login pakai password baru.
+  Terima kasih banyak bantuannya!"
+  
+  📧 **Email follow-up:**
+  To: it-support@company.com
+  Subject: ✅ Login Berhasil - John Doe
+  "Password token sudah berhasil digunakan.
+  Sistem bekerja dengan baik. Thanks!"
+  
+  💬 **Chat message:**
+  "All good now! Password worked perfectly.
+  Appreciate the quick help! 👍"
+end note
+
+Admin -> Dashboard : **2. Update status manual (opsional)**
+Dashboard -> Backend : PUT /api/tokens/{token_id}/mark-successful
+Backend -> DB : **Update token status**\nUPDATE tokens SET status = 'SUCCESS_CONFIRMED', confirmed_at = NOW() WHERE token = ?
+
+Admin -> Dashboard : **3. Close ticket/case**
+note right of Admin
+  **Admin close case:**
+  
+  ✅ **Case Resolution:**
+  • Ticket ID: HELP-2024-1024-003
+  • Status: RESOLVED - SUCCESS
+  • Resolution time: 8 minutes total
+  • User satisfaction: Confirmed positive
+  • Follow-up required: None
+  
+  **Resolution Notes:**
+  "Token generated successfully. User confirmed 
+  login working. Password changed to temporary.
+  Recommend user change to personal password 
+  within 24 hours."
+end note
+
+== Sub-Fase 7B: Monitoring Pasca-Login ==
+
+Backend -> Backend : **4. Auto-monitoring pasca login**
+note right of Backend
+  **Automatic Post-Login Monitoring:**
+  
+  ⏰ **24-Hour Window Tracking:**
+  • Monitor if user changes password  
+  • Track any additional login attempts
+  • Check for account lockout issues
+  • Verify no security incidents
+  
+  📊 **Success Metrics Collection:**
+  • Total resolution time: 8 min 15 sec
+  • User satisfaction: ✅ Confirmed
+  • Token effectiveness: 100%
+  • Follow-up needed: No
+end note
+
+Backend -> DB : **5. Log final success metrics**
+note right of Backend
+  **Final Audit Entry:**
+  
+  INSERT INTO audit_logs:
+  - action: "CASE_RESOLVED_SUCCESS"
+  - case_id: "HELP-2024-1024-003"
+  - user_id: 25 (john.doe)
+  - admin_id: 12 (admin.it)
+  - resolution_time: "8 minutes 15 seconds"
+  - user_feedback: "Positive - Confirmed working"
+  - follow_up_required: false
+  - final_status: "RESOLVED_SUCCESS"
+end note
+
+alt **Login Berhasil - Happy Path**
+    Backend -> Notifications : **6a. Success notification ke admin**
+    Notifications -> Admin : **Tampilkan success summary**
+    note right of Notifications
+      ✅ **Case Successfully Resolved!**
+      
+      **Summary:**
+      👤 User: John Doe (Finance Dept)
+      🎟️ Token: A7X9...P6 → Used successfully  
+      ⏱️ Total time: 8 minutes 15 seconds
+      😊 User feedback: Positive confirmed
+      
+      **Performance:**
+      🎯 Target met: < 10 minutes (✅)
+      📈 Success rate today: 96.2% (+1 success)
+      🏆 User satisfaction: 4.9/5 average
+      
+      **Next Action:** None required
+      Case automatically closed.
+      
+      [View Details] [Generate Report] [Next Case]
+    end note
+    
+    Backend -> Backend : **Update performance statistics**
+    note right of Backend
+      **Auto-update KPIs:**
+      • Total successful cases: +1
+      • Average resolution time: Recalculated
+      • Admin efficiency rating: Updated
+      • Department success rate: Updated
+    end note
+
+else **Perlu Follow-Up Lebih Lanjut**
+    Employee -> Admin : **6b. Masih ada masalah**
+    note right of Employee
+      **Jika masih bermasalah:**
+      
+      📞 "Pak admin, saya sudah bisa login tapi 
+      ada masalah lain. Aplikasi Excel tidak 
+      bisa buka, mungkin masalah permission?"
+      
+      📧 "Password works for Windows login, but 
+      can't access network drives. Getting 
+      'access denied' errors."
+      
+      💬 "Login berhasil, tapi beberapa software 
+      minta password lagi. Normal ga ya?"
+    end note
+    
+    Admin -> Dashboard : **Reopen case untuk follow-up**
+    Dashboard -> Backend : PUT /api/cases/{case_id}/reopen
+    Backend -> DB : UPDATE cases SET status = 'REOPENED', reopened_at = NOW()
+    
+    Admin -> Dashboard : **7b. Create additional investigation**
+    note right of Admin
+      **Extended Support Investigation:**
+      
+      🔍 **Secondary Issues Identified:**
+      • Network drive access problems
+      • Application permission issues  
+      • Software license activation needed
+      • Profile/group membership validation
+      
+      **Next Steps:**
+      1. Check Active Directory group memberships
+      2. Verify network drive mappings
+      3. Test application-specific permissions
+      4. Coordinate with network admin if needed
+      
+      **Estimated Additional Time:** 15-20 minutes
+    end note
+end
+
+== Sub-Fase 7C: Analisa Pembelajaran ==
+
+Admin -> Dashboard : **8. Review case untuk pembelajaran**
+Dashboard -> Backend : GET /api/analytics/case-analysis/{case_id}
+Backend -> DB : **Retrieve comprehensive case data**
+
+Backend -> Dashboard : **9. Generate case analysis**
+note right of Dashboard
+  📊 **Case Analysis & Learning Points**
+  
+  **What Went Well:**
+  ✅ Quick response time (< 2 minutes to contact)
+  ✅ Accurate identity verification process
+  ✅ Token generation worked flawlessly  
+  ✅ Clear communication with user
+  ✅ User successfully resolved issue
+  
+  **Areas for Improvement:**  
+  💡 Could have proactively mentioned password change
+  💡 Might benefit from follow-up reminder in 24h
+  💡 Consider adding network drive check to process
+  
+  **Process Efficiency:**
+  • Admin response: Excellent (2 min)
+  • Token generation: Standard (3 min)  
+  • User resolution: Fast (3 min)
+  • Total efficiency: 95% (vs 90% target)
+  
+  **Knowledge Base Updates:**
+  📝 Add FAQ: "What if network drives don't work?"
+  📝 Update checklist: Include app permission check
+end note
+
+Dashboard -> Backend : **10. Update knowledge base**
+Backend -> DB : **Store learning points**\nINSERT INTO knowledge_base_updates
+
+== Sub-Fase 7D: User Experience Follow-Up ==
+
+alt **Proactive Follow-Up (24 Hours Later)**
+    Notifications -> Employee : **11a. Follow-up survey**
+    note right of Notifications
+      📱 **Automated Follow-Up Message**
+      
+      "Hi John, this is CompanyLock system.
+      
+      Kemarin kami membantu Anda dengan 
+      password reset. Apakah semuanya 
+      masih berjalan lancar?
+      
+      Quick feedback (opsional):
+      😊 [Sangat Puas] [Puas] [Biasa] [Kurang] [Buruk]
+      
+      Ada masalah lain?
+      💬 Reply pesan ini atau hubungi IT: ext.123
+      
+      Terima kasih! - IT Support Team"
+    end note
+    
+    alt **User Responds Positively**
+        Employee -> Notifications : **12a. Positive feedback**
+        Notifications -> Backend : **Store positive feedback**
+        Backend -> DB : INSERT INTO feedback (rating = 5, comments = 'Still working great')
+        
+        Backend -> Dashboard : **Update satisfaction metrics**
+        note right of Dashboard
+          ✅ **Follow-Up Success**
+          
+          User: john.doe
+          24h Follow-up: ✅ Positive (5/5)
+          Comments: "Still working great, thanks!"
+          
+          **Impact on Metrics:**
+          📈 Overall satisfaction: 4.82/5 (+0.02)
+          🎯 24h retention rate: 98.5%
+          💪 Process confidence: High
+        end note
+        
+    else **User Reports New Issues**
+        Employee -> Notifications : **12b. Additional problems**
+        Notifications -> Admin : **Forward new issue**
+        Admin -> Dashboard : **Create follow-up case**
+        note right of Admin
+          🔄 **Follow-Up Case Created**
+          
+          Original Case: HELP-2024-1024-003 ✅
+          Follow-up Case: HELP-2024-1025-001 🔄
+          
+          **New Issue Reported:**
+          "Password works but some network folders 
+          still ask for old password. Can you help?"
+          
+          **Priority:** Normal (non-critical)
+          **Category:** Network Access  
+          **Estimated Resolution:** 10-15 minutes
+        end note
+        
+    else **No Response**
+        Notifications -> Backend : **12c. Log no response**
+        Backend -> DB : INSERT INTO feedback (response = 'none', follow_up_sent = true)
+        note right of Backend
+          📝 **No Response Logged**
+          
+          • Follow-up sent: ✅
+          • User response: None (normal)
+          • Assume resolution successful
+          • No further action required
+          
+          **Statistical Note:**
+          ~70% users don't respond to follow-up
+          surveys when everything is working fine.
+          This is considered normal behavior.
+        end note
+    end
+
+else **Skip Follow-Up (User Request)**
+    Employee -> Admin : **11b. Request no follow-up**
+    note right of Employee
+      "Pak admin, thank you banget. 
+      Sudah resolved perfect. Ga perlu 
+      follow-up ya, saya kabari kalau 
+      ada masalah lagi."
+    end note
+    
+    Admin -> Dashboard : **Set no-follow-up flag**
+    Dashboard -> Backend : PUT /api/cases/{case_id}/no-followup
+    Backend -> DB : UPDATE cases SET follow_up_required = false
+end
+
+== Sub-Fase 7E: Sistem Improvement ==
+
+Dashboard -> Backend : **13. Aggregate learning data**
+Backend -> DB : **Query improvement opportunities**\nSELECT * FROM cases WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+
+DB -> Backend : **30-day case analysis data**
+Backend -> Dashboard : **14. Generate improvement insights**
+note right of Dashboard
+  📊 **30-Day System Improvement Analysis**
+  
+  **Volume & Trends:**
+  📈 Total cases: 127 (+15% vs last month)  
+  🕐 Peak hours: 9-11 AM, 2-4 PM
+  📅 Peak days: Monday & Thursday
+  🏢 Top departments: Finance (32%), Sales (28%)
+  
+  **Performance Metrics:**
+  ⚡ Avg resolution: 6.2 minutes (-1.3 min improvement)
+  ✅ Success rate: 94.5% (+2.1% improvement)  
+  😊 User satisfaction: 4.7/5 (+0.3 improvement)
+  🔄 Follow-up rate: 8.2% (-3.1% improvement)
+  
+  **Common Issues Pattern:**
+  1. 🔐 Forgot password: 78% (standard)
+  2. 🖥️ New employee setup: 12%  
+  3. 🔒 Account locked: 7%
+  4. 🌐 Network issues: 3%
+  
+  **Improvement Opportunities:**
+  💡 Add self-service password reset for simple cases
+  💡 Implement SMS/WhatsApp token delivery
+  💡 Create mobile-friendly token input interface  
+  💡 Add integration with HR onboarding system
+end note
+
+Dashboard -> Backend : **15. Create improvement roadmap**
+Backend -> DB : **Store improvement plans**
+note right of Backend
+  **Improvement Roadmap Created:**
+  
+  🎯 **Q4 2024 Goals:**
+  • Reduce avg resolution to < 5 minutes
+  • Increase success rate to > 96%
+  • Implement SMS token delivery
+  • Add mobile app for token access
+  
+  📋 **Implementation Plan:**
+  Week 1-2: SMS integration development
+  Week 3-4: Mobile interface improvement
+  Week 5-6: Self-service portal MVP
+  Week 7-8: HR system integration
+  
+  💰 **ROI Expected:**  
+  • 40% reduction in admin workload
+  • 60% faster user resolution
+  • 25% increase user satisfaction
+  • $12,000 annual time savings
+end note
+
+== Sub-Fase 7F: Reporting & Documentation ==
+
+Admin -> Dashboard : **16. Generate final report**
+Dashboard -> Backend : GET /api/reports/case-summary/{case_id}
+Backend -> Dashboard : **Comprehensive case report**
+note right of Dashboard
+  📋 **Final Case Report - HELP-2024-1024-003**
+  
+  **Case Summary:**
+  👤 User: John Doe (Finance Department)
+  📞 Initial Contact: 2024-10-24 14:00:15
+  ✅ Resolution Time: 8 minutes 15 seconds  
+  😊 User Satisfaction: 5/5 (Excellent)
+  
+  **Timeline:**
+  14:00 - User called with login issue
+  14:02 - Admin verified identity & found user
+  14:05 - Token generated (A7X9...P6) 
+  14:07 - Token sent to user via WhatsApp
+  14:08 - User successfully used token
+  14:08 - User confirmed Windows login working
+  
+  **Technical Details:**
+  • Token duration: 30 minutes (standard)
+  • Password generated: Yes (12 chars, complex)
+  • Security validations: All passed
+  • Follow-up required: None
+  
+  **Performance Metrics:**
+  🎯 SLA Met: ✅ (< 10 min target)
+  📊 Quality Score: 9.8/10
+  🔒 Security Score: 10/10  
+  💰 Cost: $2.15 (admin time + system resources)
+  
+  **Knowledge Gained:**
+  • Finance dept users prefer WhatsApp delivery
+  • 30-min tokens sufficient for most cases
+  • Clear instructions reduce follow-up calls
+end note
+
+Dashboard -> Backend : **17. Archive case data**
+Backend -> DB : **Move to completed cases archive**\nINSERT INTO cases_archive SELECT * FROM active_cases WHERE id = ?
+
+== Continuous Process Improvement ==
+
+note over Employee, HR
+  **Organizational Learning & Growth:**
+  
+  📚 **Knowledge Management:**
+  • Every case adds to organizational knowledge base
+  • Common patterns become standardized procedures  
+  • Edge cases become training scenarios
+  • User feedback drives system improvements
+  
+  🎓 **Team Development:**
+  • Admin skills improve through case variety
+  • New team members learn from case histories
+  • Best practices emerge from successful patterns
+  • Cross-training opportunities identified
+  
+  🔄 **Process Evolution:**
+  • Monthly process reviews based on case data
+  • Quarterly system improvements implementation
+  • Annual strategic planning using analytics
+  • Continuous feedback loop with users and admins
+  
+  🚀 **Innovation Pipeline:**
+  • AI-powered case routing and prioritization
+  • Predictive analytics for proactive support
+  • Integration with emerging authentication methods
+  • Automated resolution for simple, repetitive cases
+end note
+
+@enduml

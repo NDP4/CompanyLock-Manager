@@ -1,0 +1,193 @@
+@startuml Sequence_KaryawanLupaPassword
+!theme plain
+
+title Diagram Sequence - Karyawan Lupa Password\nCompanyLock Manager System
+
+actor "Karyawan" as Employee
+actor "Admin IT" as Admin
+participant "Browser\n(Karyawan)" as Browser
+participant "Admin Panel\n(Dashboard)" as AdminPanel
+participant "Employee Page\n(Public)" as EmployeePage
+participant "Backend API" as Backend
+participant "Database" as DB
+participant "Encryption\nService" as Crypto
+
+== Fase 1: Karyawan Meminta Bantuan ==
+
+Employee -> Admin : **1. Hubungi admin:** "Saya lupa password"
+note right of Employee
+  Karyawan menghubungi admin IT
+  melalui telefon, email, atau chat
+  untuk meminta akses password
+end note
+
+Admin -> Employee : **2. Konfirmasi identitas**
+note right of Admin
+  Admin memverifikasi:
+  - Nama lengkap karyawan
+  - Departemen
+  - Username yang digunakan
+end note
+
+== Fase 2: Admin Generate Token ==
+
+Admin -> AdminPanel : **3. Login ke admin panel**
+AdminPanel -> Backend : POST /api/auth/login\n{username, password}
+Backend -> DB : Cek kredensial admin
+DB -> Backend : User data + role validation
+Backend -> AdminPanel : JWT token + user info
+
+AdminPanel -> Admin : **4. Dashboard tampil**
+
+Admin -> AdminPanel : **5. Buka halaman "Generate Token"**
+AdminPanel -> Backend : GET /api/users\n(Header: Authorization)
+Backend -> DB : SELECT users WHERE role='User' AND is_active=true
+DB -> Backend : Daftar karyawan aktif
+Backend -> AdminPanel : List karyawan
+
+Admin -> AdminPanel : **6. Pilih karyawan & durasi token**
+note right of Admin
+  Admin pilih:
+  - Nama karyawan yang meminta
+  - Durasi token (5-60 menit)
+  - Klik "Generate Token"
+end note
+
+AdminPanel -> Backend : POST /api/tokens/generate\n{user_id, duration_minutes}
+Backend -> Crypto : Generate secure random token
+Crypto -> Backend : Unique token string
+Backend -> DB : INSERT INTO access_tokens\n(token, user_id, admin_id, expires_at)
+DB -> Backend : Token saved
+Backend -> DB : INSERT INTO audit_logs\n(action: TOKEN_GENERATED)
+Backend -> AdminPanel : {token, expires_at}
+
+AdminPanel -> Admin : **7. Token ditampilkan**
+note right of AdminPanel
+  Token tampil di layar:
+  - String token yang aman
+  - Waktu kedaluwarsa
+  - Tombol copy untuk admin
+end note
+
+== Fase 3: Admin Berikan Token ke Karyawan ==
+
+Admin -> Employee : **8. Berikan token secara aman**
+note right of Admin
+  Admin berikan token melalui:
+  - WhatsApp/chat personal
+  - Email internal
+  - Telepon (dibaca pelan-pelan)
+  - Bertemu langsung
+  
+  **PENTING:** Jangan kirim via public channel
+end note
+
+== Fase 4: Karyawan Akses Password ==
+
+Employee -> Browser : **9. Buka halaman karyawan**
+Browser -> EmployeePage : GET http://IP:3000/
+EmployeePage -> Browser : Form input username & token
+
+Employee -> Browser : **10. Masukkan username & token**
+note right of Employee
+  Karyawan input:
+  1. Username pribadi (misal: john.doe)
+  2. Token yang diberikan admin
+  3. Klik "Akses Password"
+end note
+
+Browser -> Backend : POST /api/tokens/use\n{token, username}
+
+== Fase 5: Validasi Keamanan ==
+
+Backend -> DB : SELECT * FROM access_tokens\nWHERE token_string = ?
+DB -> Backend : Token data (user_id, expires_at, status)
+
+alt **Token Valid & Belum Expired**
+    Backend -> DB : SELECT * FROM users WHERE id = ?
+    DB -> Backend : User data (username, full_name, dept)
+    
+    Backend -> Backend : **Validasi username**
+    note right of Backend
+      Cek apakah username yang diinput
+      sama dengan pemilik token
+      (case-insensitive comparison)
+    end note
+    
+    alt **Username Sesuai**
+        Backend -> Crypto : Decrypt password for user
+        Crypto -> Backend : Plain text password
+        
+        Backend -> DB : UPDATE access_tokens SET status='used'
+        Backend -> DB : INSERT INTO audit_logs\n(action: PASSWORD_VIEWED)
+        
+        Backend -> Browser : {user: {...}, password: "plain_text"}
+        
+        Browser -> Employee : **Password ditampilkan**
+        note right of Browser
+          Tampil di layar:
+          - Username: john.doe
+          - Password: ••••••••• (tersembunyi)
+          - Tombol "Show/Hide Password"
+          - Tombol "Copy Password"
+          
+          **Auto Hide:** Password disembunyikan
+          otomatis setelah 30 detik
+        end note
+        
+    else **Username Tidak Sesuai**
+        Backend -> DB : INSERT INTO audit_logs\n(action: UNAUTHORIZED_ACCESS_ATTEMPT)
+        Backend -> Browser : HTTP 403 "Username tidak sesuai dengan pemilik token"
+        Browser -> Employee : Error: "Username salah!"
+    end
+    
+else **Token Invalid/Expired**
+    Backend -> Browser : HTTP 404 "Token tidak valid atau kedaluwarsa"
+    Browser -> Employee : Error: "Token tidak berlaku!"
+end
+
+== Fase 6: Karyawan Gunakan Password ==
+
+Employee -> Browser : **11. Show password & copy**
+Browser -> Browser : Toggle visibility password
+Browser -> Browser : Copy to clipboard
+
+Employee -> Employee : **12. Login ke sistem lain**
+note right of Employee
+  Karyawan gunakan password untuk:
+  - Login ke komputer
+  - Akses email perusahaan
+  - Login aplikasi internal
+  - dll sesuai kebutuhan
+end note
+
+== Fase 7: Keamanan Otomatis ==
+
+Browser -> Browser : **13. Auto hide password (30 detik)**
+note right of Browser
+  Setelah 30 detik:
+  - Password otomatis disembunyikan
+  - Notifikasi: "Password disembunyikan untuk keamanan"
+  - Karyawan harus input ulang token jika butuh lagi
+end note
+
+== Audit & Monitoring ==
+
+Backend -> DB : **Log semua aktivitas**
+note right of DB
+  Sistem mencatat:
+  - Siapa yang generate token
+  - Kapan token digunakan
+  - IP address akses
+  - Berhasil/gagal akses
+  - Percobaan tidak sah
+end note
+
+Admin -> AdminPanel : **Monitor log aktivitas**
+AdminPanel -> Backend : GET /api/audit-logs
+Backend -> DB : SELECT audit logs dengan filter
+DB -> Backend : Aktivitas terbaru
+Backend -> AdminPanel : Log data untuk review
+AdminPanel -> Admin : **Dashboard monitoring**
+
+@enduml

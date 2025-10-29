@@ -6,11 +6,14 @@ import {
   Shield,
   AlertCircle,
   CheckCircle,
+  User,
 } from "lucide-react";
 import { tokensApi } from "../services/api";
+import { copyToClipboard } from "../lib/clipboard";
 import toast from "react-hot-toast";
 
 const EmployeeHomePage = () => {
+  const [username, setUsername] = useState("");
   const [token, setToken] = useState("");
   const [passwordData, setPasswordData] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,6 +22,11 @@ const EmployeeHomePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!username.trim()) {
+      setError("Silakan masukkan username Anda");
+      return;
+    }
 
     if (!token.trim()) {
       setError("Silakan masukkan token Anda");
@@ -30,7 +38,7 @@ const EmployeeHomePage = () => {
     setPasswordData(null);
 
     try {
-      const result = await tokensApi.useToken(token.trim());
+      const result = await tokensApi.useToken(token.trim(), username.trim());
 
       if (result.user && result.password) {
         setPasswordData(result);
@@ -46,30 +54,35 @@ const EmployeeHomePage = () => {
       }
     } catch (err) {
       console.error("Error using token:", err);
-      setError(
-        err.response?.data?.detail || "Token tidak valid atau terjadi kesalahan"
-      );
+      if (err.response?.status === 403) {
+        setError("Username tidak sesuai dengan pemilik token!");
+      } else if (err.response?.status === 404) {
+        setError("Token tidak valid atau sudah kedaluwarsa");
+      } else {
+        setError(
+          err.response?.data?.detail ||
+            "Token tidak valid atau terjadi kesalahan"
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
+    setUsername("");
     setToken("");
     setPasswordData(null);
     setShowPassword(false);
     setError("");
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        toast.success("Password disalin ke clipboard!");
-      })
-      .catch(() => {
-        toast.error("Gagal menyalin password");
-      });
+  const handleCopyPassword = (text) => {
+    copyToClipboard(
+      text,
+      () => toast.success("Password disalin ke clipboard!"),
+      () => toast.error("Gagal menyalin password - silakan copy manual")
+    );
   };
 
   return (
@@ -101,8 +114,31 @@ const EmployeeHomePage = () => {
           {/* Main Card */}
           <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
             {!passwordData ? (
-              /* Token Input Form */
+              /* Authentication Form */
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="username"
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                  >
+                    Username
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      id="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="block w-full pl-10 pr-4 py-3 bg-black/20 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Masukkan username Anda..."
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label
                     htmlFor="token"
@@ -135,7 +171,7 @@ const EmployeeHomePage = () => {
 
                 <button
                   type="submit"
-                  disabled={loading || !token.trim()}
+                  disabled={loading || !username.trim() || !token.trim()}
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {loading ? (
@@ -203,7 +239,7 @@ const EmployeeHomePage = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              copyToClipboard(passwordData.password)
+                              handleCopyPassword(passwordData.password)
                             }
                             className="p-1 text-gray-400 hover:text-white transition-colors"
                             title="Salin Password"

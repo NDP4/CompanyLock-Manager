@@ -83,8 +83,12 @@ export const tokensApi = {
     return response.data;
   },
 
-  useToken: async (token) => {
-    const response = await api.post("/tokens/use", { token });
+  useToken: async (token, username = null) => {
+    const payload = { token };
+    if (username) {
+      payload.username = username;
+    }
+    const response = await api.post("/tokens/use", payload);
     return response.data;
   },
 };

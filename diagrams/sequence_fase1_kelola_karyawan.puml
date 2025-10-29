@@ -1,0 +1,179 @@
+@startuml Sequence_Fase1_KelolaDataKaryawan
+!theme plain
+
+title Fase 1: Kelola Data Karyawan\nCompanyLock Manager System
+
+actor "Admin IT" as Admin
+participant "Admin Panel\n(Dashboard)" as AdminPanel
+participant "Backend API" as Backend
+participant "Database" as DB
+participant "CSV Service" as CSV
+participant "Encryption\nService" as Crypto
+
+== Sub-Fase 1A: Import Data Karyawan (CSV) ==
+
+Admin -> AdminPanel : **1. Login ke admin panel**
+AdminPanel -> Backend : POST /api/auth/login\n{username, password}
+Backend -> DB : Validasi kredensial admin
+DB -> Backend : Admin user data + role
+Backend -> AdminPanel : JWT token + dashboard access
+
+Admin -> AdminPanel : **2. Buka halaman "Kelola Karyawan"**
+AdminPanel -> Backend : GET /api/users\n(Header: Authorization)
+Backend -> DB : SELECT * FROM users ORDER BY created_at DESC
+DB -> Backend : Daftar karyawan existing
+Backend -> AdminPanel : List karyawan + statistik
+
+Admin -> AdminPanel : **3. Download template CSV**
+AdminPanel -> Backend : GET /api/csv/template
+Backend -> CSV : Generate template CSV structure
+CSV -> Backend : Template file (username, fullname, dept, role, etc.)
+Backend -> AdminPanel : Download CSV template
+AdminPanel -> Admin : **File template.csv berhasil didownload**
+
+note right of Admin
+  Template CSV berisi kolom:
+  - Username (unique)
+  - FullName
+  - Department
+  - Role (Admin/User)
+  - IsActive (true/false)
+  - Password (plain text)
+end note
+
+Admin -> Admin : **4. Isi data karyawan di Excel/CSV**
+note right of Admin
+  Admin isi data karyawan:
+  john.doe,John Doe,IT,User,true,password123
+  jane.smith,Jane Smith,HR,User,true,password456
+  mike.wilson,Mike Wilson,Finance,User,true,password789
+end note
+
+Admin -> AdminPanel : **5. Upload file CSV**
+AdminPanel -> Backend : POST /api/csv/import\n(multipart/form-data)
+Backend -> CSV : Validate CSV format & structure
+CSV -> Backend : Validation result + parsed data
+
+alt **CSV Valid**
+    loop **Untuk setiap baris karyawan**
+        Backend -> Crypto : Encrypt password for storage
+        Crypto -> Backend : Encrypted password string
+        
+        Backend -> DB : INSERT INTO users\n(username, full_name, dept, encrypted_password)
+        DB -> Backend : User created with ID
+        
+        Backend -> DB : INSERT INTO audit_logs\n(action: USER_IMPORTED, admin_id, details)
+    end
+    
+    Backend -> AdminPanel : {success: true, imported_count: 25, errors: []}
+    AdminPanel -> Admin : **"25 karyawan berhasil diimport"**
+    
+else **CSV Invalid/Error**
+    Backend -> AdminPanel : {success: false, errors: ["Username duplikat", "Format email salah"]}
+    AdminPanel -> Admin : **Error: "Ada kesalahan dalam file CSV"**
+end
+
+== Sub-Fase 1B: Tambah Karyawan Manual ==
+
+Admin -> AdminPanel : **6. Klik "Tambah Karyawan Baru"**
+AdminPanel -> Admin : **Form input karyawan**
+
+Admin -> AdminPanel : **7. Isi form data karyawan**
+note right of Admin
+  Admin input:
+  - Username: new.employee
+  - Nama Lengkap: New Employee
+  - Departemen: Marketing
+  - Role: User
+  - Status: Aktif
+  - Password: tempPassword123
+end note
+
+AdminPanel -> Backend : POST /api/users/create\n{username, full_name, department, password}
+Backend -> DB : Check username uniqueness
+alt **Username Available**
+    Backend -> Crypto : Encrypt password
+    Crypto -> Backend : Encrypted password
+    Backend -> DB : INSERT INTO users (new employee data)
+    DB -> Backend : User ID created
+    Backend -> DB : INSERT INTO audit_logs (USER_CREATED)
+    Backend -> AdminPanel : {success: true, user_id: 123}
+    AdminPanel -> Admin : **"Karyawan baru berhasil ditambahkan"**
+else **Username Already Exists**
+    Backend -> AdminPanel : {error: "Username sudah digunakan"}
+    AdminPanel -> Admin : **Error: "Username sudah ada"**
+end
+
+== Sub-Fase 1C: Edit Data Karyawan ==
+
+Admin -> AdminPanel : **8. Pilih karyawan untuk diedit**
+AdminPanel -> Backend : GET /api/users/{user_id}
+Backend -> DB : SELECT * FROM users WHERE id = ?
+DB -> Backend : Detail karyawan
+Backend -> AdminPanel : User data untuk form edit
+
+Admin -> AdminPanel : **9. Update data karyawan**
+note right of Admin
+  Admin bisa edit:
+  - Nama lengkap
+  - Departemen  
+  - Status aktif/nonaktif
+  - Role (Admin/User)
+  - Reset password
+end note
+
+AdminPanel -> Backend : PUT /api/users/{user_id}\n{updated_data}
+
+alt **Update Data Biasa**
+    Backend -> DB : UPDATE users SET ... WHERE id = ?
+    Backend -> DB : INSERT INTO audit_logs (USER_UPDATED)
+    Backend -> AdminPanel : {success: true}
+    
+else **Reset Password**
+    Backend -> Crypto : Generate new random password
+    Crypto -> Backend : New encrypted password
+    Backend -> DB : UPDATE users SET encrypted_password = ?, must_change_password = true
+    Backend -> DB : INSERT INTO audit_logs (PASSWORD_RESET)
+    Backend -> AdminPanel : {success: true, temp_password: "newTemp123"}
+    AdminPanel -> Admin : **"Password direset, password sementara: newTemp123"**
+end
+
+== Sub-Fase 1D: Nonaktifkan/Hapus Karyawan ==
+
+Admin -> AdminPanel : **10. Pilih aksi untuk karyawan**
+
+alt **Nonaktifkan Karyawan**
+    AdminPanel -> Backend : PUT /api/users/{user_id}/deactivate
+    Backend -> DB : UPDATE users SET is_active = false WHERE id = ?
+    Backend -> DB : INSERT INTO audit_logs (USER_DEACTIVATED)
+    Backend -> AdminPanel : {success: true}
+    AdminPanel -> Admin : **"Karyawan berhasil dinonaktifkan"**
+    
+else **Hapus Karyawan (Soft Delete)**
+    AdminPanel -> Backend : DELETE /api/users/{user_id}
+    Backend -> DB : UPDATE users SET deleted_at = NOW() WHERE id = ?
+    Backend -> DB : UPDATE access_tokens SET status = 'cancelled' WHERE user_id = ?
+    Backend -> DB : INSERT INTO audit_logs (USER_DELETED)
+    Backend -> AdminPanel : {success: true}
+    AdminPanel -> Admin : **"Karyawan berhasil dihapus"**
+end
+
+== Monitoring & Audit ==
+
+Admin -> AdminPanel : **11. Review aktivitas kelola karyawan**
+AdminPanel -> Backend : GET /api/audit-logs?action=USER_*
+Backend -> DB : SELECT audit_logs WHERE action LIKE 'USER_%'
+DB -> Backend : Log aktivitas kelola karyawan
+Backend -> AdminPanel : Audit trail data
+AdminPanel -> Admin : **Dashboard monitoring kelola karyawan**
+
+note right of AdminPanel
+  Admin bisa lihat:
+  - Siapa yang tambah karyawan baru
+  - Kapan data karyawan diupdate
+  - Riwayat import CSV
+  - Password reset history
+  - Status perubahan karyawan
+end note
+
+@enduml

@@ -1,0 +1,79 @@
+@startuml UseCase_KaryawanLupaPassword
+!theme plain
+
+title Diagram Use Case - Sistem CompanyLock Manager\n(Karyawan Lupa Password)
+
+left to right direction
+
+' Define actors
+actor "Admin IT" as Admin
+actor "Karyawan" as Employee
+
+' Define system boundary
+rectangle "CompanyLock Manager System" {
+  ' Admin use cases
+  usecase "Login ke Admin Panel" as UC1
+  usecase "Import Data Karyawan" as UC2
+  usecase "Generate Token Akses" as UC3
+  usecase "Monitor Aktivitas" as UC4
+  usecase "Kelola Data Karyawan" as UC5
+  
+  ' Employee use cases  
+  usecase "Akses Halaman Karyawan" as UC6
+  usecase "Masukkan Username & Token" as UC7
+  usecase "Lihat Password" as UC8
+  usecase "Copy Password" as UC9
+  
+  ' System use cases
+  usecase "Validasi Token" as UC10
+  usecase "Dekripsi Password" as UC11
+  usecase "Catat Log Aktivitas" as UC12
+  usecase "Auto Hide Password" as UC13
+}
+
+' Actor relationships
+Admin --> UC1 : "Masuk sistem dengan\nusername/password"
+Admin --> UC2 : "Upload file CSV\ndata karyawan"
+Admin --> UC3 : "Buat token untuk\nkaryawan tertentu"
+Admin --> UC4 : "Pantau log dan\nstatistik sistem"
+Admin --> UC5 : "Tambah/edit/hapus\ndata karyawan"
+
+Employee --> UC6 : "Buka halaman\nhttp://IP:3000/"
+Employee --> UC7 : "Input username\ndan token dari admin"
+Employee --> UC8 : "Melihat password\nyang didekripsi"
+Employee --> UC9 : "Salin password\nke clipboard"
+
+' System relationships
+UC3 --> UC10 : "<<include>>"
+UC7 --> UC10 : "<<include>>"
+UC8 --> UC11 : "<<include>>"
+UC8 --> UC12 : "<<include>>"
+UC8 --> UC13 : "<<include>>"
+
+' Dependencies
+UC1 --> UC3 : "<<extends>>"
+UC3 --> UC7 : "Token diberikan\nkepada karyawan"
+
+note right of UC3
+  **Cara Kerja:**
+  1. Admin pilih nama karyawan
+  2. Tentukan durasi token (5-60 menit)
+  3. Sistem generate token unik
+  4. Admin berikan token ke karyawan
+end note
+
+note right of UC7
+  **Validasi Keamanan:**
+  - Username harus sesuai dengan pemilik token
+  - Token harus masih berlaku (belum expired)
+  - Sistem catat semua percobaan akses
+end note
+
+note right of UC8
+  **Fitur Keamanan:**
+  - Password otomatis disembunyikan 30 detik
+  - Hanya pemilik token yang bisa akses
+  - Log aktivitas tersimpan untuk audit
+end note
+
+@enduml

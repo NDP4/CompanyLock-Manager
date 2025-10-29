@@ -1,0 +1,431 @@
+@startuml Sequence_Fase6_MonitoringKeamanan
+!theme plain
+
+title Fase 6: Monitoring & Keamanan Sistem\nCompanyLock Manager System
+
+actor "Admin IT" as Admin
+actor "Karyawan" as Employee  
+participant "Admin Dashboard" as Dashboard
+participant "Backend API" as Backend
+participant "Security Monitor" as Security
+participant "Database" as DB
+participant "Alert System" as Alerts
+participant "Audit Logger" as AuditLog
+
+== Sub-Fase 6A: Real-time Monitoring ==
+
+Security -> Security : **1. Continuous monitoring aktif**
+note right of Security
+  **Sistem Monitoring 24/7:**
+  
+  🔄 **Auto-refresh setiap 30 detik:**
+  • Status semua token aktif
+  • Login attempts dan success rate
+  • Unusual activity patterns
+  • System performance metrics
+  
+  📊 **Real-time metrics:**
+  • Active tokens count
+  • Average response time  
+  • Success/failure ratios
+  • Peak usage indicators
+end note
+
+Security -> Dashboard : **2. Update real-time statistics**
+Dashboard -> Admin : **Tampilkan dashboard monitoring**
+note right of Dashboard
+  🖥️ **Admin IT Dashboard - Live Monitoring**
+  
+  ⏱️ **Real-time Status (Auto-refresh: 30s)**
+  
+  📈 **Today's Statistics:**
+  ├─ Total tokens generated: 23
+  ├─ Currently active: 3  
+  ├─ Success rate: 95.7% (22/23)
+  ├─ Average resolution time: 4.2 minutes
+  └─ Failed attempts: 1 (network timeout)
+  
+  🎯 **Active Tokens Right Now:**
+  ┌─────────────────────────────────────────┐
+  │ 🟢 john.doe      | Expires: 2m 15s      │
+  │ 🟡 mary.smith    | Expires: 12m 45s     │  
+  │ 🟢 bob.wilson    | Expires: 25m 10s     │
+  └─────────────────────────────────────────┘
+  
+  ⚠️ **Alerts:** 
+  • john.doe token akan expired dalam 2 menit
+  • Unusual activity: 3 failed logins dari IP 192.168.1.200
+end note
+
+== Sub-Fase 6B: Token Lifecycle Monitoring ==
+
+Security -> DB : **3. Cek status semua token**\nSELECT * FROM tokens WHERE DATE(created_at) = CURDATE()
+
+DB -> Security : **Token data hari ini**
+
+Security -> Security : **4. Analisa token lifecycle**
+note right of Security
+  **Token Lifecycle Analysis:**
+  
+  🎟️ **Generated Today:** 23 tokens
+  
+  **Status Breakdown:**
+  ├─ ✅ Successfully used: 18 (78.3%)
+  ├─ ⏰ Expired unused: 3 (13.0%)
+  ├─ 🔄 Currently active: 3 (13.0%)
+  ├─ ❌ Revoked by admin: 1 (4.3%)
+  └─ 🚫 Failed validation: 0 (0%)
+  
+  **Timing Analysis:**
+  • Average time to use: 3.5 minutes
+  • Fastest usage: 45 seconds  
+  • Longest valid duration: 28 minutes
+  • Most common duration: 30 minutes (87%)
+end note
+
+Security -> Alerts : **5. Trigger alerts untuk anomali**
+
+alt **Normal Usage Pattern**
+    note right of Security
+      ✅ **All Normal - No Alerts**
+      
+      • Usage dalam batas wajar (< 5 tokens/hour)
+      • Success rate > 90%  
+      • No security violations detected
+      • Response times < 5 minutes average
+    end note
+    
+else **Unusual Activity Detected**
+    Alerts -> Admin : **6a. Send anomaly alert**
+    note right of Alerts
+      🚨 **Security Alert - Unusual Activity**
+      
+      **Detected Issues:**
+      ⚠️ High token generation rate:
+         • 8 tokens dalam 30 menit terakhir
+         • Normal average: 2-3 per hour
+      
+      ⚠️ Multiple failed attempts:
+         • IP 192.168.1.200: 5 failed validations
+         • Possible brute force attempt
+      
+      ⚠️ Token not used:
+         • 3 tokens generated tapi tidak dipakai
+         • Possible social engineering
+      
+      **Recommended Actions:**
+      [Investigate] [Block IP] [Contact Users] [Review Logs]
+    end note
+    
+    Admin -> Dashboard : **6b. Investigate alert**
+    Dashboard -> Backend : GET /api/audit/suspicious-activity
+    Backend -> DB : **Query suspicious patterns**
+    
+else **System Performance Issues**  
+    Alerts -> Admin : **6c. Performance alert**
+    note right of Alerts
+      ⚡ **Performance Alert**
+      
+      **System Issues Detected:**
+      • Response time > 10 seconds average
+      • Database connection errors: 3 dalam 5 menit
+      • High CPU usage: 85%
+      • Memory usage: 92%
+      
+      **Auto-actions taken:**
+      ✅ Scaled up backend servers
+      ✅ Cleared unused connections  
+      ✅ Restarted slow services
+      
+      [View Details] [Manual Override] [System Status]
+    end note
+end
+
+== Sub-Fase 6C: Security Validation ==
+
+Security -> Security : **7. Run security checks**
+note right of Security
+  **Automated Security Validations:**
+  
+  🔐 **Access Pattern Analysis:**
+  • Cek login attempts dari IP tidak biasa
+  • Validasi user behavior patterns  
+  • Detect concurrent logins anomalies
+  • Monitor token sharing indicators
+  
+  🛡️ **Threat Detection:**
+  • Brute force attempt detection
+  • Social engineering pattern recognition
+  • Insider threat indicators
+  • Compliance violation checks
+end note
+
+Security -> DB : **8. Audit log analysis**\nSELECT * FROM audit_logs WHERE created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+
+alt **Suspicious Pattern Found**
+    Security -> AuditLog : **9a. Log security incident**
+    note right of AuditLog
+      **Security Incident Logged:**
+      
+      📝 **Incident ID:** SEC-2024-1024-001
+      📅 **Time:** 2024-10-24 14:25:00
+      🎯 **Type:** Suspicious Token Usage
+      
+      **Details:**
+      • User: Unknown (IP: 192.168.1.200)
+      • Action: Multiple invalid token attempts  
+      • Count: 7 attempts dalam 5 menit
+      • Tokens tried: Mix of expired dan invalid
+      • Risk Level: MEDIUM
+      
+      **Auto-actions:**
+      ✅ IP temporarily blocked (15 minutes)
+      ✅ Admin notifications sent
+      ✅ Enhanced monitoring activated
+    end note
+    
+    AuditLog -> Alerts : **Alert admin tentang incident**
+    Alerts -> Admin : **Security incident notification**
+    note right of Admin
+      📧 **Security Alert Email**
+      📱 **WhatsApp Notification**  
+      🔔 **Dashboard Pop-up**
+      
+      "URGENT: Suspicious activity detected.
+      Multiple invalid token attempts from 
+      IP 192.168.1.200. Please investigate."
+    end note
+    
+else **No Security Issues**
+    Security -> AuditLog : **9b. Log normal operation**
+    note right of AuditLog
+      ✅ **Normal Operation Logged**
+      
+      • All security checks passed
+      • No suspicious patterns detected  
+      • System operating within normal parameters
+      • Compliance requirements met
+    end note
+end
+
+== Sub-Fase 6D: Compliance & Audit ==
+
+Security -> Security : **10. Generate compliance reports**
+note right of Security
+  **Automated Compliance Checking:**
+  
+  📋 **Daily Compliance Report:**
+  • Password policy adherence: ✅ 100%
+  • Token expiry compliance: ✅ All within 2 hours max
+  • Audit log completeness: ✅ All events logged
+  • Data encryption status: ✅ All passwords encrypted
+  
+  📊 **Regulatory Requirements:**
+  • ISO 27001 controls: ✅ Met
+  • GDPR data protection: ✅ Compliant  
+  • Company IT policy: ✅ Followed
+  • Access control matrix: ✅ Updated
+end note
+
+Security -> Backend : **11. Store compliance data**
+Backend -> DB : **INSERT compliance report**
+note right of Backend
+  **Compliance Data Stored:**
+  
+  INSERT INTO compliance_reports:
+  - report_id: COMP-2024-1024
+  - report_date: 2024-10-24
+  - total_tokens: 23
+  - security_incidents: 1 (resolved)
+  - policy_violations: 0
+  - data_breaches: 0  
+  - compliance_score: 98.5%
+  - recommendations: ["Monitor IP 192.168.1.200"]
+end note
+
+== Sub-Fase 6E: Performance Analytics ==
+
+Security -> Backend : **12. Analyze performance metrics**
+Backend -> DB : **Query performance data**\nSELECT AVG(response_time), COUNT(*) FROM token_usage_logs WHERE DATE(created_at) = CURDATE()
+
+DB -> Backend : **Performance statistics**
+Backend -> Dashboard : **13. Update performance dashboard**
+Dashboard -> Admin : **Show performance analytics**
+note right of Dashboard
+  📊 **Performance Analytics Dashboard**
+  
+  ⚡ **System Performance Today:**
+  ├─ Average response time: 2.3 seconds ⬇️ (-0.5s)
+  ├─ Peak concurrent users: 12 👥
+  ├─ Database query time: 0.8s avg ⚡
+  ├─ API success rate: 99.2% ✅
+  └─ System uptime: 99.8% 🟢
+  
+  📈 **Trend Analysis (Last 7 Days):**
+  • Token generation: +15% ⬆️
+  • Success rate: Stable ~95% ➡️  
+  • Response time: Improved -12% ⬇️
+  • User satisfaction: 4.8/5 ⭐
+  
+  🎯 **Performance Targets:**
+  • Response time: < 3s (✅ ACHIEVED: 2.3s)
+  • Success rate: > 90% (✅ ACHIEVED: 95.7%)  
+  • Uptime: > 99% (✅ ACHIEVED: 99.8%)
+  
+  **Recommendations:**
+  💡 Consider increasing token duration to 45 min
+  💡 Add more detailed error messages
+  💡 Implement SMS backup for token delivery
+end note
+
+== Sub-Fase 6F: User Experience Monitoring ==
+
+Security -> Backend : **14. Collect user feedback data**
+Backend -> DB : **Query user satisfaction**
+
+alt **Positive User Feedback**
+    DB -> Backend : **High satisfaction scores**
+    Backend -> Dashboard : **15a. Show positive metrics**
+    note right of Dashboard
+      😊 **User Satisfaction - Excellent**
+      
+      📊 **This Week's Feedback:**
+      ⭐ Average rating: 4.8/5 (23 responses)
+      
+      **Positive Comments:**
+      💬 "Sangat cepat, admin langsung respon!" - Finance Dept
+      💬 "Sistemnya mudah dipake, ga ribet" - Marketing  
+      💬 "Token langsung bisa dipake, thanks IT!" - HR
+      
+      **Top Appreciated Features:**
+      ✅ Quick response time (87% mention)
+      ✅ Easy-to-use interface (78% mention)
+      ✅ Clear instructions (65% mention)
+      
+      **Suggestions for Improvement:**
+      💡 "Kasih notif WhatsApp kalau token mau expired"
+      💡 "Bisa extend token ga perlu generate baru?"
+    end note
+    
+else **Mixed/Negative Feedback**
+    DB -> Backend : **Lower satisfaction scores** 
+    Backend -> Dashboard : **15b. Show concerning metrics**
+    note right of Dashboard
+      😐 **User Satisfaction - Needs Attention**
+      
+      ⚠️ **This Week's Issues:**
+      📉 Average rating: 3.2/5 (18 responses)
+      
+      **Common Complaints:**
+      ❌ "Token kedaluwarsa sebelum sempat dipake" (6x)
+      ❌ "Susah copy paste token di HP" (4x)  
+      ❌ "Admin lama respond pas urgent" (3x)
+      ❌ "Password baru susah diingat" (2x)
+      
+      **Action Items Generated:**
+      🔧 Extend default token duration 30→45 min
+      📱 Improve mobile interface for token input
+      ⚡ Set up auto-responder for after-hours  
+      🎯 Add password complexity options
+      
+      [Address Issues] [Contact Users] [Update System]
+    end note
+end
+
+== Sub-Fase 6G: Proactive System Maintenance ==
+
+Security -> Security : **16. Schedule maintenance tasks**
+note right of Security
+  **Automated Maintenance (Daily 2 AM):**
+  
+  🧹 **Database Cleanup:**
+  • Delete expired tokens > 7 days old
+  • Archive audit logs > 90 days old  
+  • Compress old compliance reports
+  • Update user activity statistics
+  
+  🔄 **System Health Checks:**
+  • Validate all services running
+  • Check disk space and memory
+  • Test backup systems integrity  
+  • Verify SSL certificates validity
+  
+  📊 **Report Generation:**
+  • Daily usage summary
+  • Weekly trend analysis
+  • Monthly compliance report
+  • Quarterly security assessment
+end note
+
+Security -> Alerts : **17. Maintenance notifications**
+alt **Maintenance Required**
+    Alerts -> Admin : **18a. Maintenance alert**
+    note right of Alerts
+      🔧 **Scheduled Maintenance Alert**
+      
+      **Tomorrow 2:00 AM - 2:30 AM:**
+      
+      **Planned Activities:**
+      ✅ Database optimization and cleanup
+      ✅ Security patches application  
+      ✅ Performance monitoring calibration
+      ✅ Backup integrity verification
+      
+      **Expected Impact:**
+      • System will be offline: 15-20 minutes
+      • No token generation during maintenance
+      • All data will be preserved
+      
+      **Preparation Needed:**
+      💡 Notify users about maintenance window
+      💡 Generate extra tokens before 1:45 AM
+      💡 Have emergency contact ready
+      
+      [Approve] [Reschedule] [More Details]
+    end note
+    
+else **System Healthy**
+    Alerts -> Admin : **18b. All systems normal**  
+    note right of Alerts
+      ✅ **System Status: All Green**
+      
+      • No maintenance required
+      • All systems operating optimally  
+      • Performance within target ranges
+      • Security posture excellent
+      
+      **Next Review:** Tomorrow 2:00 AM
+    end note
+end
+
+== Continuous Improvement Loop ==
+
+note over Admin, AuditLog
+  **Continuous Improvement Process:**
+  
+  🔄 **Weekly Reviews:**
+  • Analyze user feedback and pain points
+  • Review security incidents and resolutions
+  • Assess performance trends and bottlenecks
+  • Update procedures based on learnings
+  
+  📈 **Monthly Optimization:**
+  • Fine-tune monitoring thresholds
+  • Update security rules and patterns  
+  • Optimize database queries and indexes
+  • Enhance user experience based on feedback
+  
+  🎯 **Quarterly Strategic Reviews:**
+  • Evaluate system architecture improvements
+  • Plan new features and capabilities
+  • Assess compliance with evolving regulations
+  • Budget planning for system upgrades
+  
+  💡 **Innovation Pipeline:**
+  • AI-powered anomaly detection
+  • Biometric authentication integration
+  • Mobile app development
+  • Advanced analytics and reporting
+end note
+
+@enduml

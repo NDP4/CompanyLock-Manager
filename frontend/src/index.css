@@ -75,6 +75,83 @@
     border-color: rgba(59, 130, 246, 0.5);
   }
 
+  /* Glass Select Dropdown Styling */
+  .glass-select {
+    @apply glass rounded-lg px-4 py-2 text-white;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .glass-select:focus {
+    @apply outline-none ring-2 ring-blue-400/50;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  .glass-select:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Option styling for glass select */
+  .glass-select option {
+    background: #1e293b;
+    background-color: #1e293b;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    font-weight: 400;
+  }
+
+  .glass-select option:hover,
+  .glass-select option:focus {
+    background: #3b82f6;
+    background-color: #3b82f6;
+    color: #dbeafe;
+  }
+
+  .glass-select option:checked,
+  .glass-select option[selected] {
+    background: #2563eb;
+    background-color: #2563eb;
+    color: #93c5fd;
+    font-weight: 500;
+  }
+
+  /* Firefox specific styling */
+  @-moz-document url-prefix() {
+    .glass-select option {
+      background-color: #1e293b !important;
+      color: white !important;
+    }
+
+    .glass-select option:hover,
+    .glass-select option:focus {
+      background-color: #3b82f6 !important;
+      color: #dbeafe !important;
+    }
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .glass-select::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .glass-select::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+  }
+
+  .glass-select::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 4px;
+  }
+
+  .glass-select::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.7);
+  }
+
   .glass-button {
     @apply glass rounded-lg px-6 py-2 font-medium text-white transition-all duration-300 hover:bg-white/20;
     background: linear-gradient(
